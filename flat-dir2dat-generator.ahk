@@ -18,7 +18,7 @@ global new_DAT_version    := ""
 FormatTime, new_DAT_version,, yyyy-MM-dd
 ;### NOTE: THIS SCRIPT WILL DELETE ANY EXISTING FILE WITH THIS NAME
 
-global windowsroms        := "d:\emulation\original rom sets\mame 0.159 split\roms"
+global windowsroms        := "d:\mame 0.159 split\roms"
 ;### Example: C:\MAME 0.78 Non-Merged\roms
 ;### DO NOT INCLUDE A CLOSING SLASH AT THE END OF THE PATH
 ;### This path is a MAME ROMs folder accessible to THIS WINDOWS HOST. These 

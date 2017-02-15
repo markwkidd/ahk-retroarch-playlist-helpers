@@ -6,7 +6,7 @@ SetWorkingDir %A_ScriptDir%   ;### Ensure a consistent starting directory.
 SetBatchLines -1              ;### Don't yield CPU to other processes (remove if there are CPU issues).
 ;---------------------------------------------------------------------------------------------------------
 global app_title        := "DIR2DAT Consolidator"
-global DAT_path         := "C:\Users\mark\Dropbox\retroarch-arcade-playlist-helpers\mamedir2datroms"
+global DAT_path         := "C:\retroarch-arcade-playlist-helpers\mamedir2datroms"
 global new_DAT_name     := "MAME - Consolidated ROM Sets"
 global new_DAT_filename := new_DAT_name . ".dat"
 global new_DAT_version  := ""
