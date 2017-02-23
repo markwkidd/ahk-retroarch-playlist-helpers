@@ -12,7 +12,7 @@ SetBatchLines -1               ;### Don't yield CPU to other processes (remove i
 
 #include retroarch-playlist-helper-lib.ahk
 
-global app_title                         := "Simple Arcade Category Sorter"
+global app_title                         := "Simple Arcade Multifilter"
 
 ;### INITIALIZE GLOBAL VARIABLES
 ;### Leave blank to prompt for all values in GUI
