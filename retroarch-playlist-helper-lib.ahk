@@ -114,7 +114,7 @@ BuildArcadeDATArray(datfile_path, ByRef shrunk_DAT_array, display_progress_bar:=
 		shrunk_DAT_array[romset_name] := {romset_name:romset_name
 		                                , title:title
 										, needs_CHD:needs_CHD
-										, is_bios:is_bios
+										, is_BIOS:is_BIOS
 										, is_device:is_device
 		                                , is_mechanical:is_mechanical
 										, clone_of:clone_of

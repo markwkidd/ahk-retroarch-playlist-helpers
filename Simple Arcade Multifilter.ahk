@@ -103,54 +103,45 @@ Main() {
 		SplitPath, A_LoopFileName,,,,ROM_filename_no_ext
 		IniRead, ROM_entry_categories, %catver_path%, Category, %ROM_filename_no_ext%, **Uncategorized**
 		
-		DAT_entry := DAT_array[ROM_filename_no_ext]
-		clone_of  := DAT_array.clone_of
-		needs_CHD := DAT_array.needs_CHD
-
- 		percent_parsed := Round(100 * (A_index / number_of_roms))
-		Progress, %percent_parsed%
-	
+		romset_entry                  := DAT_array[ROM_filename_no_ext].clone()
+        romset_entry.path             :=(ROM_path . "\" . A_LoopFileName)        
+        romset_entry.is_mature        := False		
+        romset_entry.primary_category := ""
+        romset_entry.full_category    := ROM_entry_categories
+        
+		flag_index := InStr(ROM_entry_categories, " / ")
+		if(flag_index) {
+			romset_entry.primary_category := Trim(SubStr(ROM_entry_categories, 1, flag_index))
+		} else {
+			romset_entry.primary_category := Trim(ROM_entry_categories)
+		}
+        
 		;### Mature tag looks like this in older catver.ini: *Mature*
         ;### looks like this in newer catver.ini: * Mature *
-		is_mature       := False		
 		if(InStr(ROM_entry_categories, " *Mature*") || InStr(ROM_entry_categories, " * Mature *")) {
-			is_mature    := True
+			romset_entry.is_mature    := True
 			flag_index := InStr(ROM_entry_categories, "*") - 2
 			ROM_entry_categories := Trim(SubStr(ROM_entry_categories, 1, flag_index))
 		}
-			
-		flag_index := InStr(ROM_entry_categories, " / ")
-		if(flag_index) {
-			primary_ROM_category := Trim(SubStr(ROM_entry_categories, 1, flag_index))
-		} else {
-			primary_ROM_category := Trim(ROM_entry_categories)
+        
+		if(romset_entry.primary_category == "Unplayable") {
+			romset_entry.runnable := False
 		}
-
-		runnable     := DAT_array[ROM_filename_no_ext].runnable	
-		if(primary_ROM_category == "Unplayable") {
-			runnable := False
-		}
-		
+        
+        parsed_ROM_array[ROM_filename_no_ext] := romset_entry       
+        
 		;### Build a list of all the categories represented in the catver.ini file
-		IfNotInString, category_list, %primary_ROM_category%|
+		IfNotInString, category_list, % romset_entry.primary_category . "|"
 		{
-			category_list .= primary_ROM_category . "|"
+			category_list .= romset_entry.primary_category . "|"
 		}
-		IfNotInString, category_list, %ROM_entry_categories%|
+		IfNotInString, category_list, % romset_entry.full_category . "|"
 		{
-			category_list .= ROM_entry_categories . "|"
+			category_list .= romset_entry.full_category . "|"
 		}
-		
-		parsed_ROM_array[ROM_filename_no_ext] := { romset_name:(DAT_array[ROM_filename_no_ext].romset_name)
-                                                 , path:(ROM_path . "\" . A_LoopFileName)
-		                                         , is_BIOS:(DAT_array[ROM_filename_no_ext].is_BIOS)
-                                                 , is_mechanical:(DAT_array[ROM_filename_no_ext].is_mechanical)
-												 , clone_of:(DAT_array[ROM_filename_no_ext].clone_of)
-												 , is_mature:is_mature
-												 , runnable:runnable
-												 , needs_CHD:needs_CHD
-												 , primary_category:primary_ROM_category
-												 , full_category:ROM_entry_categories}		
+        
+        percent_parsed := Round(100 * (A_index / number_of_roms))
+        Progress, %percent_parsed%
 	}
 
 	Progress, Off
@@ -193,7 +184,7 @@ Main() {
 		ROM_matches_inclusion_list := False
 		ROM_filename_with_ext      := ""				
 		SplitPath, current_ROM_path, ROM_filename_with_ext,,,
-		        
+     
 		if(exclude_clones && romset_details.clone_of) {
 			continue
 		}
@@ -206,7 +197,7 @@ Main() {
 		if(exclude_non_running_titles && !romset_details.runnable) {
 				continue
 		}
-		
+
 		if(bundle_system_files) {
             if(romset_details.is_BIOS || romset_details.is_device || romset_details.is_mechanical) {
                 ROM_matches_inclusion_list := True
@@ -272,7 +263,7 @@ PrimarySettingsGUI()
 	
 	;### Primary options
 	Gui, Font, s12 w700, Verdana
-	Gui, Add, Groupbox, w580 h195 Section, Configure sources
+	Gui, Add, Groupbox, xm0 ym0 w580 h195 Section, Configure sources
 
 		;### ROM storage location
 		Gui, Font, s10 w700, Verdana
@@ -290,7 +281,7 @@ PrimarySettingsGUI()
 		Gui, Font, s10 w700, Verdana
 		Gui, Add, Text, xs8 y+10, %catver_path_label%
 		Gui, Font, Normal s10 w400, Verdana
-		Gui, Add, Text, xs8 y+0 w550, %catver_path_desc%
+		Gui, Add, Text, xs8 y+0 w560, %catver_path_desc%
 		Gui, Add, edit, w400 xs8 y+0 vcatver_path, %catver_path%
 
 	;### Buttons
@@ -298,7 +289,7 @@ PrimarySettingsGUI()
 	Gui, Add, button, w100 xm+240 y+24 gDone, Next Step
 	Gui, Add, button, w100 x+20 yp gExit, Exit
 
-	Gui, Show, w600, %app_title%
+	Gui, Show, w610, %app_title%
 	return WinExist()
 
 	Done:
