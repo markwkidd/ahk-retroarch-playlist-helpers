@@ -28,13 +28,13 @@ global output_path_config_desc          := "Will not output to the 'root folder'
 global dat_path                         := "" ;### path to an arcade XML DAT file
 
 global catver_path_label                := "Local path to catver.ini"
-global catver_path_desc                 := "The catver file should be the same version as the arcade ROM sets being processed"
+global catver_path_desc                 := "The catver file should be the same version as the ROM sets being processed"
 global catver_path                      := ""
 
 global category_list                    := "" ;### eventually populated with catver data
 
 global include_filter	                := ""
-global include_list_label               := "Select one or more categories to include"
+global include_list_label               := "Select one or more catver.ini categories to include"
 global manual_include_filter_label      := "Enter a manual inclusion filter (overrides selection box)"
 global manual_include_filter_desc       := "Categories should be separated by a pipe character, for example:`nShooter|Flying Horizontal|Maze"
 global manual_include_filter            := ""
@@ -45,12 +45,12 @@ global manual_exclude_filter_label      := "Enter a manual exclusion filter (ove
 global manual_exclude_filter_desc       := "Categories should be separated by a pipe character, for example:`nShooter|Flying Horizontal|Maze"
 global manual_exclude_filter            := ""
 
-global bundle_BIOS_files                := True   ;### always include BIOS files **as designated in the DAT**
+global bundle_system_files              := True   ;### always include BIOS, Device, and Mechanical files **as designated in the DAT**
 global bundle_mature_files              := False
 global exclude_clones                   := False  ;### always exclude clones **as deignated in the DAT** (uses 'cloneof' tag)
 global exclude_mature_titles            := False 
 global exclude_CHD_titles               := False
-global exclude_non_running_titles       := True
+global exclude_non_running_titles       := False
 
 global eol_character                    := "`n"   ;### RetroArch default is UNIX end of line although Windows style works
 global path_delimiter                   := "\"    ;### Default to Windows paths
@@ -88,13 +88,11 @@ Main() {
 		number_of_roms := A_index
 	}
 	
-	Progress, A M T, Parsing catver.ini`, DAT`, and ROM folder., , %app_title%
-	Progress, 0
-	
 	DAT_array := ""
-	BuildArcadeDATArray(dat_path, DAT_array)
-	percent_parsed := 30
-	Progress, %percent_parsed%
+	BuildArcadeDATArray(dat_path, DAT_array, true)
+
+    Progress, A M T, Parsing catver.ini and ROM folder., , %app_title%
+	Progress, 0
 	
 	;### store list of ROMs with full path, dat modifiers, and categories in new array
 	
@@ -106,10 +104,10 @@ Main() {
 		IniRead, ROM_entry_categories, %catver_path%, Category, %ROM_filename_no_ext%, **Uncategorized**
 		
 		DAT_entry := DAT_array[ROM_filename_no_ext]
-		is_clone  := DAT_array.iscloneof
+		clone_of  := DAT_array.clone_of
 		needs_CHD := DAT_array.needs_CHD
 
- 		percent_parsed := 30 + (Round(100 * (A_index / number_of_roms)) - 30)
+ 		percent_parsed := Round(100 * (A_index / number_of_roms))
 		Progress, %percent_parsed%
 	
 		;### Mature tag looks like this in older catver.ini: *Mature*
@@ -128,9 +126,9 @@ Main() {
 			primary_ROM_category := Trim(ROM_entry_categories)
 		}
 
-		is_runnable     := DAT_array[ROM_filename_no_ext].runnable	
+		runnable     := DAT_array[ROM_filename_no_ext].runnable	
 		if(primary_ROM_category == "Unplayable") {
-			is_runnable := False
+			runnable := False
 		}
 		
 		;### Build a list of all the categories represented in the catver.ini file
@@ -143,13 +141,13 @@ Main() {
 			category_list .= ROM_entry_categories . "|"
 		}
 		
-		;### using ROM_filename_no_ext . "" as the index seems to be necessary to avoid
-		;### AHK from interpresting numberic romsets names as number (eg 005, 1941 etc)
-		parsed_ROM_array[ROM_filename_no_ext] := { path:(ROM_path . "\" . A_LoopFileName)
-		                                         , is_BIOS:(DAT_array.isbios)
-												 , is_clone:(DAT_array.iscloneof)
+		parsed_ROM_array[ROM_filename_no_ext] := { romset_name:(DAT_array[ROM_filename_no_ext].romset_name)
+                                                 , path:(ROM_path . "\" . A_LoopFileName)
+		                                         , is_BIOS:(DAT_array[ROM_filename_no_ext].is_BIOS)
+                                                 , is_mechanical:(DAT_array[ROM_filename_no_ext].is_mechanical)
+												 , clone_of:(DAT_array[ROM_filename_no_ext].clone_of)
 												 , is_mature:is_mature
-												 , is_runnable:is_runnable
+												 , runnable:runnable
 												 , needs_CHD:needs_CHD
 												 , primary_category:primary_ROM_category
 												 , full_category:ROM_entry_categories}		
@@ -190,13 +188,13 @@ Main() {
 	For romset_index, romset_details in parsed_ROM_array
 	{
 		current_ROM_index          += 1
-		current_ROM_set_name       := romset_details.romset_name
+		current_romset_name        := romset_details.romset_name
 		current_ROM_path           := romset_details.path
 		ROM_matches_inclusion_list := False
 		ROM_filename_with_ext      := ""				
 		SplitPath, current_ROM_path, ROM_filename_with_ext,,,
-		
-		if(exclude_clones && romset_details.is_clone) {
+		        
+		if(exclude_clones && romset_details.clone_of) {
 			continue
 		}
 		if(exclude_mature_titles && romset_details.is_mature){
@@ -205,12 +203,14 @@ Main() {
 		if(exclude_CHD_titles && romset_details.needs_CHD) {
 			continue
 		}
-		if(exclude_non_running_titles && !romset_details.is_runnable) {
+		if(exclude_non_running_titles && !romset_details.runnable) {
 				continue
 		}
 		
-		if(bundle_BIOS_files && romset_details.is_bios) {
-			ROM_matches_inclusion_list := True
+		if(bundle_system_files) {
+            if(romset_details.is_BIOS || romset_details.is_device || romset_details.is_mechanical) {
+                ROM_matches_inclusion_list := True
+            }
 		} else if(bundle_mature_files && romset_details.is_mature) {
 			ROM_matches_inclusion_list := True
 		} else {
@@ -234,7 +234,7 @@ Main() {
 			continue
 		}
 		percent_parsed := Round(100 * (current_ROM_index / number_of_roms))
-		Progress, %percent_parsed%, Filtering and copying ROMs and CHDs., %current_ROM_set_name%, %app_title%
+		Progress, %percent_parsed%, Filtering and copying ROMs and CHDs., %current_romset_name%, %app_title%
 		
 		;MsgBox current_rom path:%current_ROM_path%`n`noutput: %output_path%
 		
@@ -242,8 +242,8 @@ Main() {
 
 		if(romset_details.needs_CHD) {
 			;### check for CHD folders
-			CHD_source_path      := ROM_path . "\" . current_ROM_set_name
-			CHD_destination_path := output_path . "\" . current_ROM_set_name
+			CHD_source_path      := ROM_path . "\" . current_romset_name
+			CHD_destination_path := output_path . "\" . current_romset_name
 			
 			if(FileExist(CHD_source_path)) {
 				If(!FileExist(CHD_destination_path)) {
@@ -349,9 +349,9 @@ FilterSelectGUI() {
 		
 	;### other include filters
 	Gui, Font, s12 w700, Verdana
-	Gui, Add, Groupbox, xm0 y+14 w490 h110 Section, Other filters
+	Gui, Add, Groupbox, xm0 y+14 w490 h120 Section, Other filters
 	Gui, Font, s10 w400, Verdana
-	Gui, Add, Checkbox, xs8 ys24 w470 vbundle_BIOS_files Checked%bundle_BIOS_files%, Copy all BIOS files (as listed in the DAT)
+	Gui, Add, Checkbox, xs8 ys24 w470 vbundle_system_files Checked%bundle_system_files%, Copy all BIOS, Device, and Mechanical sets listed in the DAT
 	Gui, Add, Checkbox, xs8 y+4 w470 vbundle_mature_files Checked%bundle_mature_files%, Copy all Mature entries
 	
 	
@@ -377,12 +377,12 @@ FilterSelectGUI() {
 		
 	;### other exclude filters
 	Gui, Font, s12 w700, Verdana
-	Gui, Add, Groupbox, xs0 y+14 w490 h110 Section, Other filters
+	Gui, Add, Groupbox, xs0 y+14 w490 h120 Section, Other filters
 	Gui, Font, s10 w400, Verdana
 	Gui, Add, Checkbox, xs8 ys24 w470 vexclude_clones Checked%exclude_clones%, Always exclude entries tagged as clones
 	Gui, Add, Checkbox, xs8 y+4 w470 vexclude_mature_titles Checked%exclude_mature_titles%, Always exclude mature entries
 	Gui, Add, Checkbox, xs8 y+4 w470 vexclude_CHD_titles Checked%exclude_CHD_titles%, Always exclude entries with CHDs
-	Gui, Add, Checkbox, xs8 y+4 w470 vexclude_non_running_titles Checked%exclude_non_running_titles%, Always exclude non-runnable entries
+	Gui, Add, Checkbox, xs8 y+4 w470 vexclude_non_running_titles Checked%exclude_non_running_titles%, Always exclude non-runnable DAT entries (depending on MAME version this will filter out BIOS, Device, and Mechanical)
 
 
 	;### Buttons

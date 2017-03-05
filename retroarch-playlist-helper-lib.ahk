@@ -43,36 +43,43 @@ BuildArcadeDATArray(datfile_path, ByRef shrunk_DAT_array, display_progress_bar:=
 		modifiers      := (SubStr(dat_contents, dat_matchPos2, dat_matchLen2) . "")
 		XML_subentries := (SubStr(dat_contents, dat_matchPos3, dat_matchLen3) . "")
 		
-		isbios         := False
-		isdevice       := False
-		ismechanical   := False
-		iscloneof      := False
-		isromof        := False
-		runnable       := True
-		needs_CHD      := False
-		title          := ""
-		year           := ""
-		manufacturer   := ""
+		is_BIOS         := False
+		is_device       := False
+		is_mechanical   := False
+		clone_of        := False
+		ROM_of          := False
+		runnable        := True
+		needs_CHD       := False
+		title           := ""
+		year            := ""
+		manufacturer    := ""
 		
 		if(romset_name == "") {
 			MsgBox Unexpected error processing DAT file.`n`nROM set name:%romset_name% Title:%dat_title%
 			ExitApp
 		}		
 		if (InStr(modifiers, "isbios=""yes""")) {
-			isbios          := True
+			is_BIOS          := True
 		}
 		if (InStr(modifiers, "isdevice=""yes""")) {
-		    isdevice        := True
+		    is_device        := True
 		}
 		if (InStr(modifiers, "ismechanical=""yes""")) {
-		    ismechanical    := True
+		    is_mechanical    := True
 		}
-		if (InStr(modifiers, "cloneof")) {
-			iscloneof       := True
+        
+		attribute_start_pos := InStr(modifiers, "cloneof")
+		if(attribute_start_pos) {
+			attribute_start_pos += 9
+			clone_of := SubStr(modifiers, attribute_start_pos, (InStr(modifiers, """", false, attribute_start_pos) - attribute_start_pos))
 		}
-		if (InStr(modifiers, "romof")) {
-			isromof         := True
+
+		attribute_start_pos := InStr(modifiers, "romof")
+		if(attribute_start_pos) {
+			attribute_start_pos += 7
+			ROM_of := SubStr(modifiers, attribute_start_pos, (InStr(modifiers, """", false, attribute_start_pos) - attribute_start_pos))
 		}
+               
 		if (InStr(modifiers, "runnable=""no""")) {
 		    runnable        := False
 		}			
@@ -107,11 +114,11 @@ BuildArcadeDATArray(datfile_path, ByRef shrunk_DAT_array, display_progress_bar:=
 		shrunk_DAT_array[romset_name] := {romset_name:romset_name
 		                                , title:title
 										, needs_CHD:needs_CHD
-										, isbios:isbios
-										, isdevice:isdevice
-		                                , ismechanical:ismechanical
-										, iscloneof:iscloneof
-										, isromof:isromof
+										, is_bios:is_bios
+										, is_device:is_device
+		                                , is_mechanical:is_mechanical
+										, clone_of:clone_of
+										, ROM_of:ROM_of
 										, runnable:runnable
 										, year:year
 										, manufacturer:manufacturer}
