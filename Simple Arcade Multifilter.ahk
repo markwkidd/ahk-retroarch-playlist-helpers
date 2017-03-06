@@ -368,9 +368,9 @@ FilterSelectGUI() {
 	
 	;### include filter
 	Gui, Font, s12 w700, Verdana
-	Gui, Add, Groupbox, w490 xm0 ys75 h420 Section,%include_list_label%
+	Gui, Add, Groupbox, w490 xm0 ys75 h380 Section,%include_list_label%
 		Gui, Font, s12 w400, Verdana
-		Gui, Add, ListBox, Sort 8 vinclude_filter xs9 ys+24 w470 h280, %category_list%
+		Gui, Add, ListBox, Sort 8 vinclude_filter xs9 ys+24 w470 h240, %category_list%
 
 		;### manual include filter
 		Gui, Font, s10 w700, Verdana
@@ -398,9 +398,9 @@ FilterSelectGUI() {
 
 	;### exclude filter
 	Gui, Font, s12 w700, Verdana
-	Gui, Add, Groupbox, w490 xs0 ys75 h420 Section,%exclude_list_label%
+	Gui, Add, Groupbox, w490 xs0 ys75 h280 Section,%exclude_list_label%
 		Gui, Font, s12 w400, Verdana
-		Gui, Add, ListBox, Sort 8 vexclude_filter xs9 ys+24 w470 h280, %category_list%
+		Gui, Add, ListBox, Sort 8 vexclude_filter xs9 ys+24 w470 h240, %category_list%
 
 		;### manual exclude filter entry
 		Gui, Font, s10 w700, Verdana
@@ -421,7 +421,7 @@ FilterSelectGUI() {
 
 	;### Buttons
 	Gui, Font, s10 w700, Verdana
-	Gui, Add, button, w200 xs0 y+20 gCopyROMs, Copy Matching ROMs
+	Gui, Add, button, w200 xs0 y+15 gCopyROMs, Copy Matching ROMs
 	Gui, Add, button, w100 x+20 yp gExit_Category_Select, Return
 
 	Gui, show, w1020, %app_title%
