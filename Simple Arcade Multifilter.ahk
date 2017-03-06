@@ -19,7 +19,9 @@ global app_title                         := "Simple Arcade Multifilter"
 ;### Enter values in the script to serve as defaults in GUI
 
 global rom_path                         := ""
-global rom_path_label                   := "Local Arcade ROM set source path"
+global rom_path_label                   := "Local Arcade ROMset path"
+
+global MAME_version_reminder            := "The XML DAT and catver.ini should have a version number that matches the ROMset version."
 
 global output_path                      := ""
 global output_path_config_label         := "Local destination path for copied ROM sets"
@@ -28,7 +30,6 @@ global output_path_config_desc          := "Will not output to the 'root folder'
 global dat_path                         := "" ;### path to an arcade XML DAT file
 
 global catver_path_label                := "Local path to catver.ini"
-global catver_path_desc                 := "The catver file should be the same version as the ROM sets being processed"
 global catver_path                      := ""
 
 global category_list                    := "" ;### eventually populated with catver data
@@ -45,7 +46,9 @@ global manual_exclude_filter_label      := "Enter a manual exclusion filter (ove
 global manual_exclude_filter_desc       := "Categories should be separated by a pipe character, for example:`nShooter|Flying Horizontal|Maze"
 global manual_exclude_filter            := ""
 
-global bundle_system_files              := True   ;### always include BIOS, Device, and Mechanical files **as designated in the DAT**
+global bundle_bios_files                := True   ;### always include BIOS files **as designated in the DAT**
+global bundle_device_files              := True
+global bundle_mechanical_files          := False
 global bundle_mature_files              := False
 global exclude_clones                   := False  ;### always exclude clones **as deignated in the DAT** (uses 'cloneof' tag)
 global exclude_mature_titles            := False 
@@ -195,14 +198,16 @@ Main() {
 			continue
 		}
 		if(exclude_non_running_titles && !romset_details.runnable) {
-				continue
+			continue
 		}
 
-		if(bundle_system_files) {
-            if(romset_details.is_BIOS || romset_details.is_device || romset_details.is_mechanical) {
-                ROM_matches_inclusion_list := True
-            }
-		} else if(bundle_mature_files && romset_details.is_mature) {
+		if(bundle_bios_files && romset_details.is_BIOS){ 
+            ROM_matches_inclusion_list := True
+        } else if(bundle_device_files && romset_details.is_device) {
+            ROM_matches_inclusion_list := True        
+        } else if(bundle_mechanical_files && romset_details.is_mechanical) {
+            ROM_matches_inclusion_list := True
+        } else if(bundle_mature_files && romset_details.is_mature) {
 			ROM_matches_inclusion_list := True
 		} else {
 
@@ -263,40 +268,75 @@ PrimarySettingsGUI()
 	
 	;### Primary options
 	Gui, Font, s12 w700, Verdana
-	Gui, Add, Groupbox, xm0 ym0 w580 h195 Section, Configure sources
+	Gui, Add, Groupbox, xm0 ym0 w545 h230 Section, Configure sources
 
 		;### ROM storage location
 		Gui, Font, s10 w700, Verdana
-		Gui, Add, Text, xs8 ys22 w550, %rom_path_label%
+		Gui, Add, Text, xs8 ys22 w535, %rom_path_label%
 		Gui, Font, s10 w400, Verdana
-		Gui, Add, edit, w400 xs8 y+2 vrom_path, %rom_path%
+		Gui, Add, Edit, xs8 y+2 w360 h24 vrom_path, %rom_path%
+        Gui, Add, Button, x+10 yp-1 w150 h26 gBrowseROMs, Browse for folder...
+        
+        Gui, Font, s10 w700, Verdana
+        Gui, Add, Text, xs8 y+20 w535, %MAME_version_reminder%
+
 		
 		;### Arcade DAT file location
 		Gui, Font, s10 w700, Verdana
-		Gui, Add, Text, w550 xs8 y+10, Local path to MAME XML DAT file
+		Gui, Add, Text, xs8 y+10 w535, Local path to MAME XML DAT file
 		Gui, Font, Normal s10 w400, Verdana
-		Gui, Add, edit, w400 xs8 y+0 vdat_path, %dat_path%
+		Gui, Add, Edit, xs8 y+0 w360 h24 vdat_path, %dat_path%
+        Gui, Add, Button, x+10 yp-1 w150 h26 gBrowseDAT, Browse for file...
+
 
 		;### catver.ini file location
 		Gui, Font, s10 w700, Verdana
-		Gui, Add, Text, xs8 y+10, %catver_path_label%
+		Gui, Add, Text, xs8 y+10 w535, %catver_path_label%
 		Gui, Font, Normal s10 w400, Verdana
-		Gui, Add, Text, xs8 y+0 w560, %catver_path_desc%
-		Gui, Add, edit, w400 xs8 y+0 vcatver_path, %catver_path%
+		Gui, Add, Edit, xs8 y+0 w360 h24 vcatver_path, %catver_path%
+        Gui, Add, Button, x+10 yp-1 w150 h26 gBrowseCatver, Browse for file...
+       
 
 	;### Buttons
 	Gui, Font, s10 w700, Verdana
-	Gui, Add, button, w100 xm+240 y+24 gDone, Next Step
-	Gui, Add, button, w100 x+20 yp gExit, Exit
+	Gui, Add, Button, w100 xm+240 y+24 gDone, Next Step
+	Gui, Add, Button, w100 x+20 yp gExit, Exit
 
-	Gui, Show, w610, %app_title%
-	return WinExist()
+	Gui, Show, w570, %app_title%
+	Return WinExist()
 
+    BrowseROMs:
+    {   
+        FileSelectFolder, rom_path, , 3
+        if (rom_path == "") {
+            Return      ;### User selected 'cancel'
+        }
+        GuiControl,, rom_path, %rom_path%
+        Return
+    }
+    BrowseDAT:
+    {
+        FileSelectFile, dat_path, 3, , Select an arcade XML DAT file, DAT Files (*.dat; *.xml)
+        if (dat_path == "") {
+            Return      ;### User selected 'cancel'
+        }
+        GuiControl,, dat_path, %dat_path%
+        Return
+    }
+    BrowseCatver:
+    {
+        FileSelectFile, catver_path, 3, , Select an arcade catver.ini file, INI Files (*.ini)
+        if (catver_path == "") {
+            Return      ;### User selected 'cancel'
+        }
+        GuiControl,, catver_path, %catver_path%       
+        Return
+    }
 	Done:
 	{
 		Gui,submit,nohide
 		Gui,destroy
-		return
+		Return
 	}
 
 	path_entry_windowGuiClose:
@@ -322,7 +362,8 @@ FilterSelectGUI() {
 	Gui, Font, s12 w700, Verdana
 	Gui, Add, Groupbox, w490 Section xm0 ym0 h70,%output_path_config_label%
 	Gui, Font, s10 w400, Verdana
-	Gui, Add, edit, w470 xs8 ys+24 voutput_path, %output_path%
+	Gui, Add, Edit, w310 xs8 ys+24 h24 voutput_path, %output_path%
+    Gui, Add, Button, x+10 yp-1 w150 h26 gBrowseOutputFolder, Browse for folder...
 	Gui, Add, Text, xs8 y+0 w470, %output_path_config_desc%
 	
 	;### include filter
@@ -342,8 +383,10 @@ FilterSelectGUI() {
 	Gui, Font, s12 w700, Verdana
 	Gui, Add, Groupbox, xm0 y+14 w490 h120 Section, Other filters
 	Gui, Font, s10 w400, Verdana
-	Gui, Add, Checkbox, xs8 ys24 w470 vbundle_system_files Checked%bundle_system_files%, Copy all BIOS, Device, and Mechanical sets listed in the DAT
-	Gui, Add, Checkbox, xs8 y+4 w470 vbundle_mature_files Checked%bundle_mature_files%, Copy all Mature entries
+	Gui, Add, Checkbox, xs8 ys24 w470 vbundle_bios_files       Checked%bundle_bios_files%,       Copy all BIOS sets listed in the DAT
+    Gui, Add, Checkbox, xs8 y+4  w470 vbundle_device_files     Checked%bundle_device_files%,     Copy all Device sets listed in the DAT
+	Gui, Add, Checkbox, xs8 y+4  w470 vbundle_mechanical_files Checked%bundle_mechanical_files%, Copy all Mechanical sets listed in the DAT
+	Gui, Add, Checkbox, xs8 y+4  w470 vbundle_mature_files     Checked%bundle_mature_files%,     Copy all Mature entries
 	
 	
 	;### BEGIN RIGHT COLUMN
@@ -351,7 +394,7 @@ FilterSelectGUI() {
 	Gui, Add, Groupbox, w490 Section x+20 ym0 h70,Generate manual filters
 	Gui, Font, s10 w400, Verdana
 	Gui, Add, Text, xs8 ys24 w300, Translate inclusion and exclusion selections into manual filters.
-	Gui, Add, button, w150 x+20 ys24 gGenerateManualFilters, Generate filters
+	Gui, Add, button, w150 x+20 ys24 h26 gGenerateManualFilters, Generate filters
 
 	;### exclude filter
 	Gui, Font, s12 w700, Verdana
@@ -384,6 +427,14 @@ FilterSelectGUI() {
 	Gui, show, w1020, %app_title%
 	return WinExist()
 
+    BrowseOutputFolder:
+    {
+         FileSelectFolder, output_path, , 3
+        if (output_path == "") {
+            Return      ;### User selected 'cancel'
+        }
+        GuiControl,, output_path, %output_path%   
+    }
 	GenerateManualFilters:
 	{
 		Gui, submit, nohide
