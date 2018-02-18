@@ -1,1 +1,0 @@
-# ahk-retroarch-playlist-helpers
