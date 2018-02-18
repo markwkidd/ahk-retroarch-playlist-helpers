@@ -1,3 +1,2 @@
 # ahk-retroarch-playlist-helpers
 
-<strong>test</strong>
