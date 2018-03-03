@@ -35,7 +35,6 @@ global arcade_mode_label                := "Arcade Mode"
 global arcade_mode_desc                 := "Search XML DAT specified below for titles rather than ROM filenames"
 global dat_path                         := "" ;### path to an arcade XML DAT file
 global dat_array						:= "" ;### will store essential information from the DAT
-global dat_config_desc                  := "<a href=""http://progettosnaps.net/dats"">Download MAME DATs</a> - <a href=""https://github.com/libretro/fbalpha/tree/master/dats"">Download FB Alpha DATs</a>"
 
 global unix_playlist                    := False ;### Default to False
 global unix_playlist_config_label       := "Use forward slashes in playlist paths for Android, Lakka, Linux, OS X"
@@ -366,69 +365,74 @@ PrimarySettingsGUI()
 	
 	;### Primary options
 	Gui, Font, s12 w700, Verdana
-	Gui, Add, Groupbox, w580 h215 Section,Primary options
+	Gui, Add, Groupbox, w640 h200 Section,Primary options
 
 		;### ROM storage location
 		Gui, Font, s10 w700, Verdana
-		Gui, Add, Text, xs8 ys22 w550, %base_rom_path_label%
+		Gui, Add, Text, xs8 ys22 w630, %base_rom_path_label%
 		Gui, Font, s10 w400, Verdana
-		Gui, Add, Text, xs8 y+0 w550, %base_rom_path_description%
+		Gui, Add, Text, xs8 y+0 w630, %base_rom_path_description%
 		Gui, Add, edit, w400 xs8 y+2 vbase_rom_path, %base_rom_path%
 		
 		;### RetroArch core path
 		Gui, Font, s10 w700, Verdana
-		Gui, Add, Text, xs8 y+6  w550, %RA_core_path_label%
+		Gui, Add, Text, xs8 y+6  w630, %RA_core_path_label%
 		Gui, Font, Normal s10 w400, Verdana
 		Gui, Add, edit, w400 xs8 y+0  vRA_core_path, %RA_core_path%
 
 		;### thumbnail and playlist output path
 		Gui, Font, s10 w700, Verdana
-		Gui, Add, Text, xs8 y+6  w550, %output_path_config_label%
+		Gui, Add, Text, xs8 y+6  w630, %output_path_config_label%
 		Gui, Font, s10 w400, Verdana
-		Gui, Add, Text, xs8 y+0 w550, %output_path_config_description%
+		Gui, Add, Text, xs8 y+0 w630, %output_path_config_description%
 		Gui, Add, edit, w400 xs8 y+0 voutput_path, %output_path%
 
 		
 	;### Arcade-specific options
 	Gui, Font, s12 w700, Verdana
-	Gui, Add, Groupbox, xm0 y+14 w580 h105 Section, %arcade_mode_label%
+	Gui, Add, Groupbox, xm0 y+14 w640 h75 Section, %arcade_mode_label%
 		Gui, Font, s10 w700, Verdana	
-		Gui, Add, Checkbox, xs8 ys24 w550 Checked%arcade_mode% varcade_mode, %arcade_mode_desc%
+		Gui, Add, Checkbox, xs8 ys24 w630 Checked%arcade_mode% varcade_mode, %arcade_mode_desc%
 		
 		;### Arcade DAT file location
 		Gui, Font, Normal s10 w400, Verdana
 		Gui, Add, edit, w400 xs8 y+0 vdat_path, %dat_path%
-		Gui, Add, Link, xs8 y+0, %dat_config_desc%
 		
 	;### Playlist settings
-	Gui, Font, s12 w700, Verdana
-	Gui, Add, Groupbox, xm0 y+14 w580 h135 Section, Playlist settings
+	Gui, Font, s12 w700, M
+	Gui, Add, Groupbox, xm0 y+14 w640 h135 Section, Playlist settings
 		
 		Gui, Font, s10 w700, Verdana
-		Gui, Add, Checkbox, xs8 ys+28 Checked%thumb_processing_only% vthumb_processing_only, %thumb_processing_only_label%
+		Gui, Add, Checkbox, xs8 ys+28 w630 Checked%thumb_processing_only% vthumb_processing_only, %thumb_processing_only_label%
 		Gui, Font, s10 w400, Verdana
-		Gui, Add, Checkbox, xs8 y+4 Checked%unix_playlist% vunix_playlist, %unix_playlist_config_label%
-		Gui, Add, Checkbox, xs8 y+4 w550 Checked%use_alternate_rom_path% vuse_alternate_rom_path, %alternate_path_config_label%
+		Gui, Add, Checkbox, xs8 y+4 w630 Checked%unix_playlist% vunix_playlist, %unix_playlist_config_label%
+		Gui, Add, Checkbox, xs8 y+4 w630 Checked%use_alternate_rom_path% vuse_alternate_rom_path, %alternate_path_config_label%
 		Gui, Add, edit, w400 xs8 y+0 valternate_rom_path, %alternate_rom_path%
 
 	;### Thumbnail settings
 	Gui, Font, s12 w700, Verdana
-	Gui, Add, Groupbox, xm0 y+14 w580 h120 Section, Thumbnail settings (optional)
+	Gui, Add, Groupbox, xm0 y+14 w640 h115 Section, Thumbnail settings (optional)
 		Gui, Font, s10 w400, Verdana
-		Gui, Add, Link, xs8 ys24 w550, %local_art_path_label%
+		Gui, Add, Link, xs8 ys24 w630, %local_art_path_label%
 		Gui, Font, s10 w700, Verdana
-		Gui, Add, Checkbox, xs8 y+6 w550 Checked%process_local_thumbs% vprocess_local_thumbs, %local_art_path_check_text%
+		Gui, Add, Checkbox, xs8 y+6 w630 Checked%process_local_thumbs% vprocess_local_thumbs, %local_art_path_check_text%
 		Gui, Font, s10 w400, Verdana		
 		Gui, Add, Edit, w400 xs8 y+0 vlocal_art_path, %local_art_path%
 		Gui, Font, s10 w700, Verdana		
-		Gui, Add, Checkbox, xs8 y+4 w550 Checked%process_remote_thumbs% vprocess_remote_thumbs, %attempt_thumbnail_download_label%
+		Gui, Add, Checkbox, xs8 y+4 w630 Checked%process_remote_thumbs% vprocess_remote_thumbs, %attempt_thumbnail_download_label%
 		
 	;### Buttons
 	Gui, Font, s10 w700, Verdana
-	Gui, Add, button, w100 xp+240 y+18 gDone, Next Step
+	Gui, Add, button, w100 xp+350 y+18 gDone, Next Step
 	Gui, Add, button, w100 xp+120 yp gExit, Exit
 
-	Gui, show, w610, %app_title%
+;### Donation link
+	Gui, Font, s12 w700, Verdana
+	Gui, Add, Groupbox, xm0 y+14 w640 h68 Section, Donation link
+		Gui, Font, s10 w400, Verdana
+		Gui, Add, Link, xs8 ys24 w630, Donations are accepted via <a href="http://paypal.me/handbarrow">Handbarrow's PayPal.me account</a>. Please consider giving $5 to support the development of this tool. Thank you!
+    
+	Gui, show, w670, %app_title%
 	return WinExist()
 
 	Done:

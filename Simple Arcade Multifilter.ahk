@@ -302,9 +302,18 @@ PrimarySettingsGUI()
 	Gui, Add, Button, w100 xm+240 y+24 gDone, Next Step
 	Gui, Add, Button, w100 x+20 yp gExit, Exit
 
+    
+    ;### Donation link
+	Gui, Font, s12 w700, Verdana
+	Gui, Add, Groupbox, xm0 y+10 w545 h68 Section, Donation link
+		Gui, Font, s10 w400, Verdana
+		Gui, Add, Link, xs8 ys24 w535, Donations are accepted via <a href="http://paypal.me/handbarrow">Handbarrow's PayPal.me account</a>. Please consider giving $5 to support the development of this tool. Thank you!  
+        
+        
 	Gui, Show, w570, %app_title%
 	Return WinExist()
-
+  
+    
     BrowseROMs:
     {   
         FileSelectFolder, rom_path, , 3
