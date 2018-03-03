@@ -13,7 +13,6 @@ SetBatchLines -1               ;### Don't yield CPU to other processes (remove i
 #include retroarch-playlist-helper-lib.ahk
 
 global app_title                         := "RetroArch Playlist Buddy"
-global app_mode                          := 0 ;### Tracks user's choice for playlist generator versus playlist processor mode
 
 ;### INITIALIZE GLOBAL VARIABLES
 ;### Leave blank to prompt for all values in GUI
@@ -27,38 +26,35 @@ global base_rom_path_description        := "During the next step you can select 
 global RA_core_path                     := "DETECT"
 global RA_core_path_label               := "Playlist path to a RetroArch core (ends in .dll or .so)"
 
-global playlist_path                    := ""
-global playlist_path_config_label       := "RetroArch playlist path"
+global output_path                      := ""
+global output_path_config_label         := "Local destination path for playlists and thumbnails"
+global output_path_config_description   := "For use on this PC, enter the local RetroArch path, such as c:\RetroArch"
 
-global arcade_mode                      := False
+global arcade_mode                      := True
+global arcade_mode_label                := "Arcade Mode"
+global arcade_mode_desc                 := "Search XML DAT specified below for titles rather than ROM filenames"
 global dat_path                         := "" ;### path to an arcade XML DAT file
 global dat_array						:= "" ;### will store essential information from the DAT
-global dat_config_desc                  := "<a href=""http://progettosnaps.net/dats"">Download MAME DATs</a> - "
-                                         . "<a href=""https://github.com/libretro/fbalpha/tree/master/dats"">Download FB Alpha DATs</a>"
+global dat_config_desc                  := "<a href=""http://progettosnaps.net/dats"">Download MAME DATs</a> - <a href=""https://github.com/libretro/fbalpha/tree/master/dats"">Download FB Alpha DATs</a>"
 
 global unix_playlist                    := False ;### Default to False
 global unix_playlist_config_label       := "Use forward slashes in playlist paths for Android, Lakka, Linux, OS X"
-global alternate_path_config_label      := "Use a different base ROM path in playlist than the local ROM path that is scanned.`n"
-                                         . "Intended for deploying playlists to a different Android, Lakka, Linux, or OS X system."
-                                         
+global alternate_path_config_label      := "Use a different base ROM path in playlist than the local ROM path that is scanned. Helpful for Android, Lakka, Linux, OS X"
 global use_alternate_rom_path           := False ;### Default to False
 global alternate_rom_path               := "/storage/roms"
 ;### alternate_rom_path: Location of the base ROM folder for the RetroArch installation
 ;### where the playlist(s) will be used as opposed to the ROM path used to scan for ROMs
 
-global local_art_path_label             := "You will need <a href=""http://thumbnailpacks.libretro.com/"">libretro thumbnail packs</a> or <a href=""http://www.progettosnaps.net/snapshots/"">conventional MAME thumbnail sets</a> for local scraping."
-global local_art_path_check_text        := "Scrape local thumbnail source images at the following base path:"
+global local_art_path_label             := "You may find it helpful to <a href=""http://thumbnailpacks.libretro.com/"">download libretro thumbnail packs</a>."
+global local_art_path_check_text        := "Use local thumbnail source images at the following base path:"
 global local_art_path                   := "" ;### Can be left blank if not using a local thumbnail source.
 
-global full_rom_subfolder_list          := ""
+global full_rom_subfolder_list          := "" ;### initalize as blank
 global selected_rom_subfolder_list		:= ""
-global full_playlist_list               := ""
-global selected_playlist_list           := ""
+global rom_subfolder_list_label         := "Select one or more ROM subfolders to process"
 
-global recurse_ROM_subfolders           := False
-global ROM_inclusion_filter             := "*.*"
-
-global reset_playlist_cores             := False
+global thumb_processing_only            := False  ;### Enable to avoid creating or overwriting playlists
+global thumb_processing_only_label      := "Do not generate playlists. Only process thumbnails."
 global process_local_thumbs             := False  ;### Default is False
 global process_remote_thumbs            := False  ;### Default is False
 global attempt_thumbnail_download_label := "[Experimental] Try to download individual thumbnails"
@@ -82,88 +78,71 @@ global playlist_path_delimiter          := "\"    ;### Default to Windows paths
 
 ;---------------------------------------------------------------------------------------------------------
 
-;### GUI Configuration
-global heading_font_config    := "s12 w700"
-global subheading_font_config := "s10 w700"
-global body_font_config       := "s10 w400"
-global app_window_w           := 740
-global box_w                  := app_window_w - 30
-global groupbox_contents_w    := app_window_w - 60
-global textbox_w              := Round(2 * (box_w / 3))
-global prev_button_x          := box_w - 210
-global next_button_x          := box_w - 100
-
-;---------------------------------------------------------------------------------------------------------
-
 Main()
-
-;---------------------------------------------------------------------------------------------------------
+ExitApp
 
 Main() {
-	app_mode := SelectAppModeGUI()
-    if(app_mode == 0) {
-        Generator()
-        Return
-    }
-    if(app_mode == 1) {
-        Processor()
-        Return
-    }
-    if(app_mode == 3) {
-        ExitApp
-    }
-}
 
-;---------------------------------------------------------------------------------------------------------
+	GatherConfigData:
+	PrimarySettingsGUI()                    ;### Prompt the user to enter the configuration 
+	WinWaitClose
 
-Generator() {
-
-    DAT_array           := ""
-    
-    PrimaryGeneratorGUI()                  ;### Prompt the user to enter the configuration 
-    WinWaitClose
-
-	full_rom_subfolder_list := ""          ;### reinitialize each time the first menu is closed, in case the base directory has changed
 	if(unix_playlist) {
 		playlist_path_delimiter = /
 	}
 	
-	Trim(playlist_path)
-	StripFinalSlash(playlist_path)         ;## Remove any trailing forward or back slashes from user-provided paths
+	Trim(output_path)
+	StripFinalSlash(output_path)           ;## Remove any trailing forward or back slashes from user-provided paths
 	Trim(base_rom_path)
 	StripFinalSlash(base_rom_path)
+	Trim(local_art_path)
+	StripFinalSlash(local_art_path)
 	Trim(alternate_rom_path)
 	StripFinalSlash(alternate_rom_path)	
 	Trim(RA_core_path)
 
 	if !FileExist(base_rom_path) {
-        MsgBox,,Path Error!, Base ROM directory does not exist:`n%base_rom_path%
-        Generator()
-        Return
+		MsgBox,,Path Error!, Base ROM directory does not exist:`n%base_rom_path%
+		Goto, GatherConfigData
 	} else if ((arcade_mode) and (!FileExist(dat_path))) {
 		MsgBox,,Path Error!, Arcade mode enabled, but DAT file not found:`n%dat_path%
-        Generator()
-        Return
-	} else if !FileExist(playlist_path) {
-		MsgBox,,Path Error!, Playlist path does not exist:`n%playlist_path%
-        Generator()
-        Return
-    }
+		Goto, GatherConfigData
+	} else if !FileExist(output_path) {
+		MsgBox,,Path Error!, Thumbnail and playlist output directory does not exist:`n%output_path%
+		Goto, GatherConfigData
+	} else if (process_local_thumbs and (local_art_path = "" or !FileExist(local_art_path))) {
+		MsgBox,,Path Error!, Local art directory was specified but does not exist:`n%local_art_path%
+		Goto, GatherConfigData
+	}
 
+	full_rom_subfolder_list := ""          ;### reinitialize in case base directory has changed
 	Loop, Files, %base_rom_path%\*.*, D	   ;### Loop through base ROM folder, looking only for subfolders
 	{
 		full_rom_subfolder_list .= (A_LoopFileName . "|")
 	}
 	StringTrimRight, full_rom_subfolder_list, full_rom_subfolder_list, 1	;### remove extra | pipe character at end. not elegant.
-    
-    proceed := False
-	SecondaryGeneratorGUI(proceed)
-	WinWaitClose
-    if(!proceed) {
-        Generator()
-        Return
-    }
 
+	ROMSubfolderSelectGUI()
+	WinWaitClose
+	
+	if(!trigger_generation) {	;### For example if the "Return" button or window close chrome has been used
+		Goto, GatherConfigData
+	}
+
+	if(!thumb_processing_only) {
+		FileCreateDir, %output_path%\playlists  ;### create playlists subfolder if it doesn't exist
+	}
+	if(process_local_thumbs || process_remote_thumbs) {
+		FileCreateDir, %output_path%\thumbnails     ;### create main thumbnails folder if it doesn't exist
+	}
+	
+	unmatched_thumb_log := ""
+	if(audit_thumbnails) {
+		FileDelete, %unmatched_thumb_log_filename%   ;### clear existing umatched thumbnaillog 
+		unmatched_thumb_log := FileOpen(unmatched_thumb_log_filename,"a") ;### Creates new playlist in 'append' mode
+	}
+	
+	DAT_array := ""
 	if(arcade_mode) {
 		BuildArcadeDATArray(dat_path, DAT_array, True)
 	}
@@ -171,527 +150,313 @@ Generator() {
 	Loop, Parse, selected_rom_subfolder_list, |
 	{	
 		ROM_file_array := Object() ;### Reinitialize file list for each subfolder loop
-		playlist_name  := A_LoopField
-		file_list      := ""
-        
-        if(recurse_ROM_subfolders) {
-            Loop, Files, %base_rom_path%\%playlist_name%\%ROM_inclusion_filter%, R
-            {
-                file_list  .= A_LoopFileLongPath . "`n"
-            }
-            Trim(file_list)
-        } else {
-		    Loop, Files, %base_rom_path%\%playlist_name%\%ROM_inclusion_filter%
-		    {
-                file_list  .= A_LoopFileLongPath . "`n"
-            }
-            Trim(file_list)
-        }
-        
-        Loop, Parse, file_list, `n
-        {
-			SplitPath, A_LoopField,,,,ROM_filename_no_ext
+		playlist_name := A_LoopField
+		
+		Loop, Files, %base_rom_path%\%playlist_name%\*.*
+		{
+			SplitPath, A_LoopFileLongPath,,,,ROM_filename_no_ext
 			ROM_details := DAT_array[ROM_filename_no_ext]
 					
-			if(arcade_mode && MatchDATFilterCriteria(rom_details)) {
-				continue
-			}
-			if((ROM_details == "") || (ROM_details.title == "")) {
+			if(arcade_mode && (MatchDATFilterCriteria(rom_details))) {
+				continue ;### continue to next ROM
+			} else if((ROM_details == "") || (ROM_details.title == "")) {
+			    ;### use filename in file name mode and also for arcade ROMs with no DAT title
 				ROM_details := {Title:ROM_filename_no_ext} 
 			}
 			
-			ROM_details.path                     := A_LoopField
+			ROM_details.path                     := A_LoopFileLongPath
 			ROM_file_array[ROM_filename_no_ext]  := ROM_details
 		}
 		
-		playlist_filename := playlist_path . "\" . playlist_name . ".lpl"	
-		PlaylistGenerator(ROM_file_array
-                        , playlist_filename
-                        , playlist_name
-                        , (use_alternate_rom_path ? alternate_ROM_path : base_rom_path)
-                        , playlist_path_delimiter, True)
+		if(!thumb_processing_only) {
+			playlist_filename := output_path . "\playlists\" . playlist_name . ".lpl"	
+			PlaylistGenerator(ROM_file_array, playlist_filename, playlist_name, (use_alternate_rom_path ? alternate_ROM_path : base_rom_path), playlist_path_delimiter, True)
+		}
 		
-
+		if(process_local_thumbs || process_remote_thumbs) {	;### create thumbnail subfolder
+			Loop, Parse, thumbnail_category_list, |
+			{
+				thumbnail_category_name := A_LoopField
+				FileCreateDir, %output_path%\thumbnails\%playlist_name%\%thumbnail_category_name%
+			}
+		}	
+		
+		unmatched_thumb_list := "`r`n`r`n[" . playlist_name . "]`r`n"
+		ThumbnailProcessor(ROM_file_array, playlist_name, (audit_thumbnails ? unmatched_thumb_list : False))
+		
+		if(audit_thumbnails) {
+			unmatched_thumb_log.Write(unmatched_thumb_list)
+		}
 	}
 
-	MsgBox,,%app_title%,Playlist generation complete. Click OK to return to the generator menu.
-    Generator() ;### return to first generator screen when complete
-    Return
+	if(audit_thumbnails) {
+		unmatched_thumb_log.Close()  ;### close and flush the umatched thumbnail log
+	}
+
+	MsgBox,,%app_title%,Processing complete. Click OK to return to main menu.
+	Goto, GatherConfigData
 }
 
 ;---------------------------------------------------------------------------------------------------------
 
-Processor() {
+ThumbnailProcessor(ByRef ROM_file_array, playlist_name, ByRef unmatched_thumb_list:=False) {
 
-    unmatched_thumb_log  := ""
-    unmatched_thumb_list := ""
-    
-    PrimaryProcessorGUI()             ;### Prompt the user to enter the configuration 
-    WinWaitClose
+	number_of_files      := NumGet(&ROM_file_array + 4*A_PtrSize)   ;### associative array size. voodoo from the AHK forums	
+	current_ROM_count    := 0
 
-	full_playlist_list := ""          ;### reinitialize each time the first menu is closed, in case the playlist directory has changed
+	if(process_local_thumbs) {
+		Progress, A M T, Processing thumbnails for:`n%playlist_name%, Local thumbnail repository`n, %app_title%
+		current_ROM_count    := 0
+		For ROM_name, ROM_details in ROM_file_array
+		{
+			current_ROM_count += 1
+			percent_parsed := Round(100 * (current_ROM_count / number_of_files))
+			Progress, %percent_parsed%				
+			
+			current_ROM_title := ROM_details.title
+			sanitized_name := SanitizeFilename(current_ROM_title)
+			
+			Loop, Parse, thumbnail_category_list, |
+			{
+				local_image_path = %output_path%\thumbnails\%playlist_name%\%A_LoopField%\%sanitized_name%.png
+				source_image_path  := ""
 
-	Trim(playlist_path)
-	StripFinalSlash(playlist_path)    ;## Remove any trailing forward or back slashes from user-provided paths    
-    Trim(local_art_path)
-	StripFinalSlash(local_art_path)
-
-    if !FileExist(playlist_path) {
-		MsgBox,,Path Error!, Playlist path does not exist:`n%playlist_path%
-        Processor()
-        Return
-    } else if (process_local_thumbs and (local_art_path = "" or !FileExist(local_art_path))) {
-		MsgBox,,Path Error!, Local art directory was specified but does not exist:`n%local_art_path%
-        Processor()
-        Return
-    }
-    
-	Loop, Files, %playlist_path%\*.lpl
-	{
-		full_playlist_list .= (A_LoopFileName . "|")
+				if(arcade_mode && use_libretro_mame_thumb) {
+					source_image_path = %local_art_path%\MAME\%A_LoopField%\%sanitized_name%.png
+					
+				} else if(arcade_mode && use_libretro_fba_thumb) {
+					source_image_path = %local_art_path%\FB Alpha - Arcade Games\%A_LoopField%\%sanitized_name%.png
+					
+				} else if(arcade_mode && use_std_mame_thumb) {
+					;### 'traditional' MAME thumbnail sets, based on ROM filename
+					std_mame_image_subfolder := ""
+					if(A_LoopField = "Named_Boxarts") {
+						std_mame_image_subfolder := "flyers"
+					} else if (A_LoopField = "Named_Snaps") {
+						std_mame_image_subfolder := "snap"					
+					} else if (A_LoopField = "Named_Titles") {
+						std_mame_image_subfolder := "titles"					
+					}
+					source_image_path = %local_art_path%\%std_mame_image_subfolder%\%ROM_name%.png
+					
+				} else { ;### filename matching mode - use corresponding folder in source
+					source_image_path = %local_art_path%\%playlist_name%\%A_LoopField%\%sanitized_name%.png				
+				}
+				FileCopy, %source_image_path%, %local_image_path%, 0     ;### Explicit 'do not overwrite' mode
+			}
+		}
+		Progress, Off
 	}
-	StringTrimRight, full_playlist_list, full_playlist_list, 1	;### remove extra | pipe character at end. not elegant.
-    
-    proceed := False
-    SecondaryProcessorGUI(proceed)
-	WinWaitClose
-    if(!proceed) {
-        Processor()
-        Return
-    }
 	
-	if(audit_thumbnails) {
-		unmatched_thumb_log := FileOpen(unmatched_thumb_log_filename,"w") ;### Deletes any existing file
+	if(process_remote_thumbs) {
+		current_ROM_count  := 0
+		download_error     := 0
+		Progress, A M T, Processing thumbnails for:`n%playlist_name%, "Initalizing Download`n", %app_title%
+		
+		For ROM_name, ROM_details in ROM_file_array
+		{
+			current_ROM_count += 1
+			current_ROM_title := ROM_details.title
+			sanitized_name := SanitizeFilename(current_ROM_title)
+			
+			percent_parsed := Round(100 * (current_ROM_count / number_of_files))
+			Progress, %percent_parsed%, Processing thumbnails for:`n%playlist_name%,Downloading images for:`n%current_ROM_title%,%app_title%
+			
+			Loop, Parse, thumbnail_category_list, |
+			{
+				local_image_path = %output_path%\thumbnails\%playlist_name%\%A_LoopField%\%sanitized_name%.png
+				source_image_path  := ""
+				if(arcade_mode && use_libretro_mame_thumb) {
+					source_image_path = %remote_libretro_mame_repo%/%A_LoopField%/%sanitized_name%.png	
+					
+				} else if(arcade_mode && use_libretro_fba_thumb) {
+					source_image_path = %remote_libretro_fba_repo%/%A_LoopField%/%sanitized_name%.png
+					
+				} else if(arcade_mode && use_std_mame_thumb) {
+					;### 'traditional' MAME thumbnail sets, based on ROM filename
+					std_mame_image_subfolder := ""
+					if(A_LoopField = "Named_Boxarts") {
+						std_mame_image_subfolder := "flyers"
+					} else if (A_LoopField = "Named_Snaps") {
+						std_mame_image_subfolder := "ingames"					
+					} else if (A_LoopField = "Named_Titles") {
+						std_mame_image_subfolder := "titles"					
+					}
+					source_image_path = %remote_std_mame_repo%/%std_mame_image_subfolder%/%ROM_name%.png
+					
+				} else { ;### filename matching mode - use corresponding folder in source
+					source_image_path = %remote_libretro_parent_repo%/%playlist_name%/%A_LoopField%/%sanitized_name%.png			
+				}
+
+				try { ;### Do not overwrite existing files, do not display individual download progress bar
+					DownloadFile(source_image_path, local_image_path, False, False)
+				}
+				Catch e {
+					download_error += 1
+					Results := ""
+					if(download_error >= 3) { ;### give up after three attempts to download
+						For Each, Line in StrSplit(e.Message, "`n", "`r")
+						{
+							Results := InStr(Line, "Description:") 
+								? StrReplace(Line, "Description:")
+								: ""
+							Results := Trim(Results)
+							If (Results != "") {
+								Break
+							}
+						}
+						MsgBox ,, Download error, %Results%
+						process_remote_thumbs := False ;### turn off downloading after catching the exception
+						Return
+					}
+				}
+			}
+		}
+		Progress, Off
 	}
-  
-	Loop, Parse, selected_playlist_list, |
-	{	    
-        SplitPath, A_LoopField,,,,playlist_file_no_ext
-        playlist_filename        := playlist_path . "\" . A_LoopField
-        MsgBox, playlsitfilename %playlist_filename%
-        playlist_file            := FileOpen(playlist_filename,"r")
-        playlist_string          := playlist_file.Read()
-        playlist_line_count      := 0
-        playlist_file.Close()        
-        playlist_contents        := Object()
-        new_playlist_string      := ""
- 
- ; IS THIS REALLY NEEDED OR WOULD A COPIED FILE CREATE ANY NEEDED FOLDERS ABOVE IT?
- ;   	if(process_local_thumbs || process_remote_thumbs) {	;### create thumbnail subfolder
- ;           Loop, Parse, thumbnail_category_list, |
- ;           {
- ;               thumbnail_category_name := A_LoopField
- ;               FileCreateDir, %playlist_path%\..\thumbnails\%playlist_file_no_ext%\%thumbnail_category_name%
- ;           }
- ;       }
- 
-        Loop, Parse, playlist_string, `n, `r
-        {
-            playlist_line_count        := A_Index
-            playlist_contents[A_Index] := A_LoopField
-        }
- 
-		if(process_local_thumbs) {
-            Progress, A M T, Processing thumbnails for:`n%playlist_file_no_ext%, Local thumbnail repository`n, %app_title%
-            line_index := 1
-            while (line_index < playlist_line_count)
-            {
-                percent_parsed := Round(100 * (line_index / playlist_line_count))
-                Progress, %percent_parsed%				
-                
-                title := Trim(playlist_contents[line_index+1])
-                sanitized_name := SanitizeFilename(title)
-                
-                Loop, Parse, thumbnail_category_list, |
-                {
-                    local_image_path = %playlist_path%\..\thumbnails\%playlist_file_no_ext%\%A_LoopField%\%sanitized_name%.png
-                    source_image_path  := ""
-
-                    if(arcade_mode && use_libretro_mame_thumb) {
-                        source_image_path = %local_art_path%\MAME\%A_LoopField%\%sanitized_name%.png
-                        
-                    } else if(arcade_mode && use_libretro_fba_thumb) {
-                        source_image_path = %local_art_path%\FB Alpha - Arcade Games\%A_LoopField%\%sanitized_name%.png
-                        
-                    } else if(arcade_mode && use_std_mame_thumb) {
-                        ;### 'traditional' MAME thumbnail sets, based on ROM filename
-                        std_mame_image_subfolder := ""
-                        if(A_LoopField = "Named_Boxarts") {
-                            std_mame_image_subfolder := "flyers"
-                        } else if (A_LoopField = "Named_Snaps") {
-                            std_mame_image_subfolder := "snap"					
-                        } else if (A_LoopField = "Named_Titles") {
-                            std_mame_image_subfolder := "titles"					
-                        }
-                        source_image_path = %local_art_path%\%std_mame_image_subfolder%\%ROM_name%.png
-                        
-                    } else { ;### filename matching mode - use corresponding folder in source
-                        source_image_path = %local_art_path%\%playlist_file_no_ext%\%A_LoopField%\%sanitized_name%.png				
-                    }
-                    FileCopy, %source_image_path%, %local_image_path%, 0     ;### Explicit 'do not overwrite' mode
-                }               
-                line_index += 6							   
-            }
-
-            Progress, Off
-        }
-        
-        if(process_remote_thumbs) {
-
-            download_error     := 0
-            Progress, A M T, Processing thumbnails for:`n%playlist_file_no_ext%, "Initalizing Download`n", %app_title%
-            
-            line_index := 1
-            while (line_index < playlist_line_count)
-            {
-                percent_parsed := Round(100 * (line_index / playlist_line_count))
-                Progress, %percent_parsed%			
-                
-                title := Trim(playlist_contents[line_index+1])
-                sanitized_name := SanitizeFilename(title)
-                               
-                Loop, Parse, thumbnail_category_list, |
-                {
-                    local_image_path = %playlist_path%\..\thumbnails\%playlist_file_no_ext%\%A_LoopField%\%sanitized_name%.png
-                    source_image_path  := ""
-                    if(arcade_mode && use_libretro_mame_thumb) {
-                        source_image_path = %remote_libretro_mame_repo%/%A_LoopField%/%sanitized_name%.png	
-                        
-                    } else if(arcade_mode && use_libretro_fba_thumb) {
-                        source_image_path = %remote_libretro_fba_repo%/%A_LoopField%/%sanitized_name%.png
-                        
-                    } else if(arcade_mode && use_std_mame_thumb) {
-                        ;### 'traditional' MAME thumbnail sets, based on ROM filename
-                        std_mame_image_subfolder := ""
-                        if(A_LoopField = "Named_Boxarts") {
-                            std_mame_image_subfolder := "flyers"
-                        } else if (A_LoopField = "Named_Snaps") {
-                            std_mame_image_subfolder := "ingames"					
-                        } else if (A_LoopField = "Named_Titles") {
-                            std_mame_image_subfolder := "titles"					
-                        }
-                        source_image_path = %remote_std_mame_repo%/%std_mame_image_subfolder%/%ROM_name%.png
-                        
-                    } else { ;### filename matching mode - use corresponding folder in source
-                        source_image_path = %remote_libretro_parent_repo%/%playlist_file_no_ext%/%A_LoopField%/%sanitized_name%.png			
-                    }
-
-                    try { ;### Do not overwrite existing files, do not display individual download progress bar
-                        DownloadFile(source_image_path, local_image_path, False, False)
-                    }
-                    Catch e {
-                        download_error += 1
-                        Results := ""
-                        if(download_error >= 3) { ;### give up after three attempts to download
-                            For Each, Line in StrSplit(e.Message, "`n", "`r")
-                            {
-                                Results := InStr(Line, "Description:") 
-                                    ? StrReplace(Line, "Description:")
-                                    : ""
-                                Results := Trim(Results)
-                                If (Results != "") {
-                                    Break
-                                }
-                            }
-                            MsgBox ,, Download error, %Results%
-                            process_remote_thumbs := False ;### turn off downloading after catching the exception
-                            Return
-                        }
-                    }
-                }
-            }
-            Progress, Off
-        }
-        
-        if(reset_playlist_cores) {
-            line_index          := 1
-            new_playlist_string := ""
-            while (line_index < playlist_line_count)
-            {
-                new_playlist_string   .= (playlist_contents[line_index])   . eol_character
-                                       . (playlist_contents[line_index+1]) . eol_character 
-                                       . "DETECT" . eol_character
-                                       . "DETECT" . eol_character 
-                                       . (playlist_contents[line_index+4]) . eol_character
-                                       . (playlist_contents[line_index+5]) . eol_character
-                line_index += 6	        
-            }
-            MsgBox, %A_LoopField% play`n %playlist_path%\%A_LoopField%`n%new_playlist_string%
-            playlist_file := FileOpen(playlist_filename,"w")
-            playlist_file.Write(new_playlist_string)
-            playlist_file.Close()
-        }
-        
-        if(audit_thumbnails){
-            unmatched_thumb_list .= "`r`n`r`n[" . playlist_file_no_ext . "]`r`n"
-
-            line_index := 0
-            while (line_index < playlist_line_count)
-            {
-                title := Trim(playlist_contents[line_index+1])
-                sanitized_name := SanitizeFilename(title)
-                
-                Loop, Parse, thumbnail_category_list, |
-                {
-                    local_image_path = %playlist_path%\..\thumbnails\%playlist_file_no_ext%\%A_LoopField%\%sanitized_name%.png
-                    if(!FileExist(local_image_path)) {
-                        unmatched_thumb_list .= playlist_file_no_ext . "/" . A_LoopField . "=" . sanitized_name . ".png`r`n"
-                    }
-                }
-            }
-        }
-	}
-    
-	if(audit_thumbnails) {
-		unmatched_thumb_log.Write(unmatched_thumb_list)
-	}
-    
-    MsgBox,, %app_title%, Playlist processing complete. Click OK to return to the Processor menu.
-    
-    Processor() ;### return to first processor screen after complete
-    Return
-}
-
-;---------------------------------------------------------------------------------------------------------
-SelectAppModeGUI() {
-
-	SetTimer, ChangeButtonNames, 1
-	MsgBox, 3, %app_title% - Mode Select, Please choose an operational mode:`n`n"Generator" creates new playlists.`n"Processor" modifies existing playlists and scrapes thumbnails for playlists.
-
-	IfMsgBox, Yes 
-	{
-		return 0
-	}
-	IfMsgBox, No
-	{
-		return 1
-	}
-	IfMsgBox, Cancel
-	{
-		ExitApp
+	
+	if(unmatched_thumb_list != False){
+		current_ROM_count    := 0
+		For ROM_name, ROM_details in ROM_file_array
+		{
+			current_ROM_count += 1			
+			current_ROM_title := ROM_details.title
+			sanitized_name := SanitizeFilename(current_ROM_title)
+			
+			Loop, Parse, thumbnail_category_list, |
+			{
+				local_image_path = %output_path%\thumbnails\%playlist_name%\%A_LoopField%\%sanitized_name%.png
+				if(!FileExist(local_image_path)) {
+					unmatched_thumb_list .= playlist_name . "/" . A_LoopField . "=" . sanitized_name . ".png`r`n"
+				}
+			}
+		}
 	}
 
-	ChangeButtonNames: ;### using the MsgBox like this is hacky. Should be redone with a proper Gui
-	IfWinNotExist, %app_title% - Mode Select
-		return  ; Keep waiting.
-	SetTimer, ChangeButtonNames, off 
-	WinActivate 
-	ControlSetText, Button1, &Generator
-	ControlSetText, Button2, &Processor 
-	ControlSetText, Button3, &Exit 
-	return
 }
 
 ;---------------------------------------------------------------------------------------------------------
 
-PrimaryGeneratorGUI()
+MatchDATFilterCriteria(dat_entry) {
+	if(dat_entry.isbios) {
+		Return True
+	}
+	if(dat_entry.isdevice) {
+		Return True
+	}
+	if(dat_entry.ismechanical){
+		Return True
+	}
+	if(!dat_entry.runnable){
+		Return True
+	}
+	return False
+}
+
+
+;---------------------------------------------------------------------------------------------------------
+
+PrimarySettingsGUI()
 {
-    DetectHiddenWindows, Off
-    Gui, primary_generator_window: new
-    Gui, Default
-    Gui, +LastFound
+	DetectHiddenWindows, Off
 
-    ;### Primary options
-    Gui, Font, %heading_font_config%,    Verdana
-    Gui, Add, Groupbox, w%box_w% h160 Section,                Primary options
+	Gui, path_entry_window: new
+	Gui, Default
+	Gui, +LastFound
+	
+	;### Primary options
+	Gui, Font, s12 w700, Verdana
+	Gui, Add, Groupbox, w580 h215 Section,Primary options
 
-    ;### ROM storage location
-    Gui, Font, %subheading_font_config%, Verdana
-    Gui, Add, Text, xs8 ys24 w%groupbox_contents_w%,          %base_rom_path_label%
-    Gui, Font, %body_font_config%,       Verdana
-    Gui, Add, Text, xs8 y+0 w%groupbox_contents_w%,           %base_rom_path_description%
-    Gui, Add, Edit, xs8 y+2 w%textbox_w% vbase_rom_path,      %base_rom_path%
+		;### ROM storage location
+		Gui, Font, s10 w700, Verdana
+		Gui, Add, Text, xs8 ys22 w550, %base_rom_path_label%
+		Gui, Font, s10 w400, Verdana
+		Gui, Add, Text, xs8 y+0 w550, %base_rom_path_description%
+		Gui, Add, edit, w400 xs8 y+2 vbase_rom_path, %base_rom_path%
+		
+		;### RetroArch core path
+		Gui, Font, s10 w700, Verdana
+		Gui, Add, Text, xs8 y+6  w550, %RA_core_path_label%
+		Gui, Font, Normal s10 w400, Verdana
+		Gui, Add, edit, w400 xs8 y+0  vRA_core_path, %RA_core_path%
 
-    ;### playlist path
-    Gui, Font, %subheading_font_config%, Verdana
-    Gui, Add, Text, xs8 y+8  w%groupbox_contents_w%,          %playlist_path_config_label%
-    Gui, Font, %body_font_config%,       Verdana
-    Gui, Add, Text, xs8 y+0 w%groupbox_contents_w%,           For use on this PC, enter your configured RetroArch playlist path, such as c:\RetroArch\playlists
-    Gui, Add, edit, xs8 y+0 w%textbox_w% vplaylist_path,      %playlist_path%
+		;### thumbnail and playlist output path
+		Gui, Font, s10 w700, Verdana
+		Gui, Add, Text, xs8 y+6  w550, %output_path_config_label%
+		Gui, Font, s10 w400, Verdana
+		Gui, Add, Text, xs8 y+0 w550, %output_path_config_description%
+		Gui, Add, edit, w400 xs8 y+0 voutput_path, %output_path%
 
-    Gui, Font, %heading_font_config%,    Verdana
-    Gui, Add, Groupbox, xm0 y+24 w%box_w% h160 Section,       Playlist options
+		
+	;### Arcade-specific options
+	Gui, Font, s12 w700, Verdana
+	Gui, Add, Groupbox, xm0 y+14 w580 h105 Section, %arcade_mode_label%
+		Gui, Font, s10 w700, Verdana	
+		Gui, Add, Checkbox, xs8 ys24 w550 Checked%arcade_mode% varcade_mode, %arcade_mode_desc%
+		
+		;### Arcade DAT file location
+		Gui, Font, Normal s10 w400, Verdana
+		Gui, Add, edit, w400 xs8 y+0 vdat_path, %dat_path%
+		Gui, Add, Link, xs8 y+0, %dat_config_desc%
+		
+	;### Playlist settings
+	Gui, Font, s12 w700, Verdana
+	Gui, Add, Groupbox, xm0 y+14 w580 h135 Section, Playlist settings
+		
+		Gui, Font, s10 w700, Verdana
+		Gui, Add, Checkbox, xs8 ys+28 Checked%thumb_processing_only% vthumb_processing_only, %thumb_processing_only_label%
+		Gui, Font, s10 w400, Verdana
+		Gui, Add, Checkbox, xs8 y+4 Checked%unix_playlist% vunix_playlist, %unix_playlist_config_label%
+		Gui, Add, Checkbox, xs8 y+4 w550 Checked%use_alternate_rom_path% vuse_alternate_rom_path, %alternate_path_config_label%
+		Gui, Add, edit, w400 xs8 y+0 valternate_rom_path, %alternate_rom_path%
 
-    ;### RetroArch core path
-    Gui, Font, %subheading_font_config%, Verdana
-    Gui, Add, Text, xs8 ys24  w%groupbox_contents_w%,         %RA_core_path_label%
-    Gui, Font, %body_font_config%,       Verdana
-    Gui, Add, Edit, xs8 y+0 w%textbox_w%  vRA_core_path,      %RA_core_path%
-    
-    Gui, Add, Checkbox, xs8 y+4 w%groupbox_contents_w% Checked%unix_playlist% vunix_playlist
-                                                            , %unix_playlist_config_label%
-                                                                       
-    Gui, Add, Checkbox, xs8 y+4 w%groupbox_contents_w% Checked%use_alternate_rom_path% vuse_alternate_rom_path
-                                                            , %alternate_path_config_label%
-                                                                       
-    Gui, Add, Edit, xs8 y+0 w%textbox_w% valternate_rom_path, %alternate_rom_path%
-        
-    ;### Arcade-specific options
-    Gui, Font, %heading_font_config%,    Verdana
-    Gui, Add, Groupbox, xm0 y+24 w%box_w% h95 Section,       Arcade DAT Scanner
-    Gui, Font, %subheading_font_config%, Verdana
-    Gui, Add, Checkbox, xs8 ys24 w%groupbox_contents_w% Checked%arcade_mode% varcade_mode
-                                                            , Parse the XML DAT specified below for titles rather than using filenames for the title	
-    ;### Arcade DAT file location
-    Gui, Font, %body_font_config%,       Verdana
-    Gui, Add, Edit, xs8 y+0 w%textbox_w% vdat_path,           %dat_path%
-    Gui, Add, Link, xs8 y+0,                                  %dat_config_desc%
+	;### Thumbnail settings
+	Gui, Font, s12 w700, Verdana
+	Gui, Add, Groupbox, xm0 y+14 w580 h120 Section, Thumbnail settings (optional)
+		Gui, Font, s10 w400, Verdana
+		Gui, Add, Link, xs8 ys24 w550, %local_art_path_label%
+		Gui, Font, s10 w700, Verdana
+		Gui, Add, Checkbox, xs8 y+6 w550 Checked%process_local_thumbs% vprocess_local_thumbs, %local_art_path_check_text%
+		Gui, Font, s10 w400, Verdana		
+		Gui, Add, Edit, w400 xs8 y+0 vlocal_art_path, %local_art_path%
+		Gui, Font, s10 w700, Verdana		
+		Gui, Add, Checkbox, xs8 y+4 w550 Checked%process_remote_thumbs% vprocess_remote_thumbs, %attempt_thumbnail_download_label%
 		
 	;### Buttons
-    Gui, Font, %subheading_font_config%, Verdana
-	Gui, Add, Button, w100 xs%prev_button_x% y+24 gPrimaryGeneratorPrevious, Previous
-	Gui, Add, Button, w100 xs%next_button_x% yp   gPrimaryGeneratorNextStep, Next Step
+	Gui, Font, s10 w700, Verdana
+	Gui, Add, button, w100 xp+240 y+18 gDone, Next Step
+	Gui, Add, button, w100 xp+120 yp gExit, Exit
 
-	Gui, Show, w%app_window_w%, %app_title% - Generator
-	Return WinExist()
+	Gui, show, w610, %app_title%
+	return WinExist()
 
-	PrimaryGeneratorNextStep:
+	Done:
 	{
-		Gui,Submit,Nohide
-		Gui primary_generator_window:Destroy
-		Return
+		Gui,submit,nohide
+		Gui,destroy
+		return
 	}
-	primary_generator_windowGuiClose:
-	PrimaryGeneratorPrevious:
+
+	path_entry_windowGuiClose:
+	Exit:
 	{
-		Gui primary_generator_window:Destroy
-		Main()
-        Return
-    }
+		Gui path_entry_window:destroy
+		ExitApp
+	}
 }
 
-SecondaryGeneratorGUI(ByRef proceed) {
+ROMSubfolderSelectGUI() {
 
 	DetectHiddenWindows, Off
 	Gui, subfolder_selection_window: new
 	Gui, Default
 	Gui, +LastFound
-	
-	Gui, Font, %heading_font_config%,    Verdana
-	Gui, Add, Groupbox, w%box_w% Section xm0 ym0 h325,               Select one or more ROM subfolders to process
-    Gui, Font, s12 w400, Verdana   
-	Gui, Add, ListBox, 8 vselected_rom_subfolder_list xs9 ys25 w%groupbox_contents_w% h300, %full_rom_subfolder_list%
-    
-    Gui, Font, %subheading_font_config%, Verdana
-    Gui, Add, Checkbox, xs8 y+16 w%groupbox_contents_w% Checked%recurse_ROM_subfolders% vrecurse_ROM_subfolders
-                                                                   , Recurse through subfolders of the folders selected above
-    Gui, Add, Text, xs8 y+8 w%groupbox_contents_w%,                  Inclusion filter: only include files with this extension (ex: *.zip or *.cue)
-    Gui, Font, %body_font_config%,       Verdana                                                                
-    Gui, Add, Edit, xs8 y+0 w%textbox_w% vROM_inclusion_filter,      %ROM_inclusion_filter%                                                           
-    ;### Buttons
-    Gui, Font, %subheading_font_config%, Verdana
-    Gui, Add, button, w100 xs%prev_button_x% y+24 gSecondaryGeneratorPrevious, Previous
-	Gui, Add, button, w100 xs%next_button_x% yp   gGenerate,                   Generate
-
-	Gui, show, w%app_window_w%, %app_title% - Generator
-	return WinExist()
-
-	Generate:
-	{
-		Gui,Submit,Nohide
-		If (selected_rom_subfolder_list = "") {
-			Return ;### no subfolders selected to process
-		}
-		Gui subfolder_selection_window:Destroy
-		proceed := True
-        Return
-	}
-
-	subfolder_selection_windowGuiClose:
- 	SecondaryGeneratorPrevious:
-	{
-        Gui subfolder_selection_window:Destroy
-        proceed := False
-        Return
-	}
-}
-
-;---------------------------------------------------------------------------------------------------------
-
-PrimaryProcessorGUI() {
-
-	DetectHiddenWindows, Off
-	Gui, primary_processor_window: new
-	Gui, Default
-	Gui, +LastFound
-    
-    playlist_path_description  := "For use on this PC, enter your configured RetroArch playlist path, such as c:\RetroArch\playlists."
-    thumbnail_path_description := "Any thumbnails that are scraped will be placed in a folder called thumbnails within the same parent folder as the playlist folder."
-	
-	;### Primary options
-	Gui, Font, %heading_font_config%,    Verdana
-	Gui, Add, Groupbox, xm0 w%box_w% h120 Section,                   Primary options
-    
-    Gui, Font, %subheading_font_config%, Verdana
-    Gui, Add, Text, xs8 ys24 w%groupbox_contents_w%,                 %playlist_path_config_label%
-    Gui, Font, %body_font_config%,       Verdana
-    Gui, Add, Text, xs8 y+0 w%groupbox_contents_w%,                  %playlist_path_description%
-    Gui, Add, Edit, xs8 y+0 w%textbox_w% vplaylist_path,             %playlist_path%
-    Gui, Add, Text, xs8 y+0 w%groupbox_contents_w%,                  %thumbnail_path_description%
-
-	Gui, Font, %heading_font_config%,    Verdana
-	Gui, Add, Groupbox, xm0 y+24 w%box_w% h135 Section,              Thumbnail scraping
-    
-	Gui, Font, %body_font_config%,       Verdana
-	Gui, Add, Link, xs8 ys24 w%groupbox_contents_w%,                 %local_art_path_label%
-	Gui, Font, %subheading_font_config%, Verdana
-	Gui, Add, Checkbox, xs8 y+8 w%groupbox_contents_w% Checked%process_local_thumbs% vprocess_local_thumbs
-                                                                   , %local_art_path_check_text%
-    
-    Gui, Add, Checkbox, xs8 ys24 w%groupbox_contents_w% Checked%arcade_mode% varcade_mode
-                                                                            
-    Gui, Font, %body_font_config%,        Verdana
-    Gui, Add, Edit, xs8 w%textbox_w% y+0 vlocal_art_path,           %local_art_path%
-    Gui, Font, %subheading_font_config%,  Verdana
-    Gui, Add, Checkbox, xs8 y+8 w%groupbox_contents_w% Checked%process_remote_thumbs% vprocess_remote_thumbs
-                                                                   , %attempt_thumbnail_download_label%				
-	Gui, Font, %heading_font_config%,    Verdana
-	Gui, Add, Groupbox, xm0 w%box_w% y+24 h50 Section,              Audit Thumbnails	
-    Gui, Font, %body_font_config%,        Verdana    
-	Gui, Add, Checkbox, xs8 ys24 w%groupbox_contents_w% vaudit_thumbnails Checked%audit_thumbnails%
-                                                                   , Create %unmatched_thumb_log_filename%
- 	Gui, Font, %heading_font_config%,    Verdana
-	Gui, Add, Groupbox, xm0 y+24 w%box_w% h50 Section,              Playlist modification 
-    Gui, Font, %body_font_config%,        Verdana    
-    Gui, Add, Checkbox, xs8 ys24 w%groupbox_contents_w% Checked%reset_playlist_cores% vreset_playlist_cores
-                                                                   , Reset libretro core name and path to "DETECT"
-                                                                   
-    ;### Buttons
-	Gui, Font, %subheading_font_config%,  Verdana
-    
-	Gui, Add, button, w100 xs%prev_button_x% y+24 gPrimaryProcessorPrevious,   Previous
-	Gui, Add, button, w100 xs%next_button_x% yp   gPrimaryProcessorNextStep,   Next Step
-
-	Gui, Show, w%app_window_w%, %app_title%
-	Return WinExist()
-
-	PrimaryProcessorNextStep:
-	{
-		Gui, Submit, Nohide
- 		Gui primary_processor_window:destroy
-		Return
-	}
-	primary_processor_windowGuiClose:
-	PrimaryProcessorPrevious:
-	{
-		Gui primary_processor_window:destroy
-        Main()
-		Return
-	}
-}
-
-SecondaryProcessorGUI(ByRef proceed) {
-
-	DetectHiddenWindows, Off
-	Gui, playlist_selection_window: new
-	Gui, Default
-	Gui, +LastFound
 	logging_options_y_pos := "y+20" ;### default position for the playlist log options
 	
 	Gui, Font, s12 w700, Verdana
-	Gui, Add, Groupbox, w%box_w% Section xm0 ym0 h325,                        Select one or more playlists to process
-    Gui, Font, s12 w400, Verdana
-	Gui, Add, ListBox, 8 vselected_playlist_list xs9 ys25 w%groupbox_contents_w% h300, %full_playlist_list%
+	Gui, Add, Groupbox, w580 Section xm0 ym0 h325,%rom_subfolder_list_label%
+	Gui, Add, ListBox, 8 vselected_rom_subfolder_list xs9 ys25 w550 h300, %full_rom_subfolder_list%
 
 	if(process_local_thumbs or process_remote_thumbs) {
 		logging_options_y_pos := "ys200" ;### the thumbnail log GUI will be positioned with respect to the thumb scraping options 
@@ -699,18 +464,17 @@ SecondaryProcessorGUI(ByRef proceed) {
 		if(!arcade_mode) { ;### filename matching mode
 
 			Gui, Font, s12 w700, Verdana
-			Gui, Add, Groupbox, xm0 ys350 w%box_w% h150 Section, Filename Matching Mode
-		    Gui, Font, %subheading_font_config%, Verdana
-			Gui, Add, Text, xs8 ys24 w%groupbox_contents_w%, Search Path
-			Gui, Font, %body_font_config%,        Verdana
+			Gui, Add, Groupbox, xm0 ys350 w580 h150 Section, Filename Matching Mode
+			Gui, Font, s10 w700, Verdana
+			Gui, Add, Text, xs8 ys24 w550, Search Path
+			Gui, Font, s10 w400, Verdana
 
 			if(process_local_thumbs) {
-				Gui, Add, Link, xs8 y+8 w%groupbox_contents_w% Border, Thumbnails will be matched locally within sufolders of %local_art_path% with the same name as the ROM subfolder(s) selected below.
+				Gui, Add, Link, xs8 y+8 w550 Border, Thumbnails will be matched locally within sufolders of %local_art_path% with the same name as the ROM subfolder(s) selected below.
 			}
 			if(process_remote_thumbs) {
-				Gui, Add, Link, xs8 y+8 w%groupbox_contents_w% Border, Thumbnails will be matched on the libretro server to images in subfolders at <a href=`"%remote_libretro_parent_repo%`">%remote_libretro_parent_repo%</a> with the same name as the ROM subfolder(s) selected below.
+				Gui, Add, Link, xs8 y+8 w550 Border, Thumbnails will be matched on the libretro server to images in subfolders at <a href=`"%remote_libretro_parent_repo%`">%remote_libretro_parent_repo%</a> with the same name as the ROM subfolder(s) selected below.
 			}
-            
 		} else if(arcade_mode) {
 
 			libretro_mame_radio_label := "Libretro MAME thumbnail repository"
@@ -736,63 +500,49 @@ SecondaryProcessorGUI(ByRef proceed) {
 				std_mame_radio_desc      .= "Remote (arcadeitalia.net): " . remote_std_mame_repo			
 			}
 
-			Gui, Add, Groupbox, xm0 y+10 w%box_w% h190  Section, Arcade Mode - Select thumbnail search path:
+			Gui, Add, Groupbox, xm0 y+10 w580 h190  Section, Arcade Mode - Select thumbnail search path:
 			Gui, Font, s10 w700, Verdana
-			Gui, Add, Text, xs8 ys25 w%groupbox_contents_w%, %libretro_mame_radio_label%
-			Gui, Add, Text, xs8 ys80 w%groupbox_contents_w%, %libretro_fba_radio_label%
-			Gui, Add, Text, xs8 ys135 w%groupbox_contents_w%, %std_mame_radio_label%
+			Gui, Add, Text, xs8 ys25 w550, %libretro_mame_radio_label%
+			Gui, Add, Text, xs8 ys80 w550, %libretro_fba_radio_label%
+			Gui, Add, Text, xs8 ys135 w550, %std_mame_radio_label%
 
 			Gui, Font, s9 w400, Verdana
 			;### radio buttons have to be grouped together in the code, for AHK reasons
-			Gui, Add, Radio, xs8 ys40 w%groupbox_contents_w% vuse_libretro_mame_thumb Checked, %libretro_mame_radio_desc%
-			Gui, Add, Radio, xs8 ys95 w%groupbox_contents_w% vuse_libretro_fba_thumb, %libretro_fba_radio_desc%
-			Gui, Add, Radio, xs8 ys150 w%groupbox_contents_w% vuse_std_mame_thumb, %std_mame_radio_desc%						
+			Gui, Add, Radio, xs8 ys40 w560 vuse_libretro_mame_thumb Checked, %libretro_mame_radio_desc%
+			Gui, Add, Radio, xs8 ys95 w560 vuse_libretro_fba_thumb, %libretro_fba_radio_desc%
+			Gui, Add, Radio, xs8 ys150 w560 vuse_std_mame_thumb, %std_mame_radio_desc%						
 		}		
 	}
 
-	;### Buttons
-    Gui, Font, %subheading_font_config%, Verdana
-    Gui, Add, button, w100 xs%prev_button_x% y+24 gSecondaryProcessorPrevious, Previous
-	Gui, Add, button, w100 xs%next_button_x% yp   gProcess,                    Process
+	Gui, Font, s12 w700, Verdana
+	Gui, Add, Groupbox, xm0 w580 %logging_options_y_pos% h50 Section, Audit Thumbnails	
+	Gui, Font, s10 w400, Verdana
+	Gui, Add, Checkbox, xs8 ys24 vaudit_thumbnails Checked%audit_thumbnails%, Create unmatched thumbnails log: %unmatched_thumb_log_filename%
 
-	Gui, show, w%app_window_w%, %app_title% - Processor
+	;### Buttons
+	Gui, Font, s10 w700, Verdana
+	Gui, Add, button, w100 xp+240 y+24 gGenerate, Generate
+	Gui, Add, button, w100 xp+120 yp gExit_Subfolder_Select, Return
+
+	Gui, show, w610, %app_title%
 	return WinExist()
 
-	Process:
+	Generate:
 	{
-		Gui,Submit,Nohide
-		If (selected_playlist_list = "") {
+		Gui,submit,nohide
+		If (selected_rom_subfolder_list = "") {
 			Return ;### no subfolders selected to process
 		}
-		Gui playlist_selection_window:Destroy
-		proceed := True ;### return true to go forward
-        Return
+		trigger_generation := True
+		Gui subfolder_selection_window:destroy
+		Return
 	}
 
-	playlist_selection_windowGuiClose:
- 	SecondaryProcessorPrevious:
+	subfolder_selection_windowGuiClose:
+	Exit_Subfolder_Select:
 	{
-        Gui playlist_selection_window:Destroy
-        proceed := False ;### return false to go back
-        Return
+		trigger_generation := False
+		Gui subfolder_selection_window:destroy
+		Return
 	}
-}
-
-;---------------------------------------------------------------------------------------------------------
-
-MatchDATFilterCriteria(dat_entry) {
-
-	if(dat_entry.is_BIOS) {
-		Return True
-	}
-	if(dat_entry.is_device) {
-		Return True
-	}
-	if(dat_entry.is_mechanical) {
-		Return True
-	}
-	if(!dat_entry.runnable) {
-		Return True
-	}
-	return False
 }
