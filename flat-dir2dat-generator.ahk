@@ -8,17 +8,17 @@ SetWorkingDir %A_ScriptDir%    ;### Ensure a consistent starting directory.
 
 #include retroarch-playlist-helper-lib.ahk
 
-global source_DAT         := "MAME 0.159 XML.dat"
+global source_DAT         := "mame2003-plus.xml"
 ;### Example: C:\MAME\dats\MAME 078.dat
 ;### local path to a MAME ROM database file
 
-global new_DAT_name       := "MAME 0.159 Split TorrentZipped (No BIOS, Device, Mechanical)"
+global new_DAT_name       := "MAME 2003-Plus (2018-11-11)"
 global new_DAT_filename   := new_dat_name . ".dat"
 global new_DAT_version    := ""
 FormatTime, new_DAT_version,, yyyy-MM-dd
 ;### NOTE: THIS SCRIPT WILL DELETE ANY EXISTING FILE WITH THIS NAME
 
-global windowsroms        := "d:\mame 0.159 split\roms"
+global windowsroms        := "d:\mame2003-plus\roms"
 ;### Example: C:\MAME 0.78 Non-Merged\roms
 ;### DO NOT INCLUDE A CLOSING SLASH AT THE END OF THE PATH
 ;### This path is a MAME ROMs folder accessible to THIS WINDOWS HOST. These 
@@ -41,16 +41,19 @@ Main() {
 
 	ROM_file_list  :=  "" ;### Initialize to be blank.
 	file_list_size := 0
-	Loop, Files, %windowsroms%\*.zip 
+	Loop, Files, %windowsroms%\*.zip  
 	{
 		ROM_file_list    .= A_LoopFileName . "`n"
 		file_list_size := A_Index
 	}
 	Sort, ROM_file_list
 
-	Progress, 0, Calculating checksums, , DIR2DAT
-	percent_parsed := 0
+	Progress, 0, Standardizing and calculating checksums, , DIR2DAT
+	percent_parsed := 30
 	Progress, percent_parsed
+
+  RunWaitOne("trrntzip.exe """ . windowsroms)
+  
 
 	Loop, Parse, ROM_file_list, `n 
 	{
@@ -58,7 +61,7 @@ Main() {
 			break
 		}
 		
-		percent_parsed := Round(100 * (A_index / file_list_size))
+		percent_parsed := Round(100 * ((A_index / file_list_size) * .7))
 		Progress, %percent_parsed%
 		SplitPath, A_LoopField,filename_with_ext,,,filename_no_ext	 ;### trim the file extension from the name
 			
@@ -71,7 +74,6 @@ Main() {
 		fancyname := DAT_entry.title
 		year      := DAT_entry.year
 		developer := DAT_entry.manufacturer
-		
 		
 		full_cksum_command := "crc32.exe """ . windowsroms . "\" . filename_with_ext . """ -nf"
 		cksum_raw_out := RunWaitOne(full_cksum_command)
