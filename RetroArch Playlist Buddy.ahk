@@ -138,7 +138,7 @@ Main() {
   unmatched_thumb_log := ""
   if(audit_thumbnails) {
     FileDelete, %unmatched_thumb_log_filename%   ;### clear existing umatched thumbnaillog 
-    unmatched_thumb_log := FileOpen(unmatched_thumb_log_filename,"a") ;### Creates new playlist in 'append' mode
+    unmatched_thumb_log := FileOpen(unmatched_thumb_log_filename,"a") ;### Creates new file in 'append' mode
   }
   
   DAT_array := ""
@@ -326,7 +326,7 @@ ThumbnailProcessor(ByRef ROM_file_array, playlist_name, ByRef unmatched_thumb_li
       {
         local_image_path = %output_path%\thumbnails\%playlist_name%\%A_LoopField%\%sanitized_name%.png
         if(!FileExist(local_image_path)) {
-          unmatched_thumb_list .= playlist_name . "/" . A_LoopField . "=" . sanitized_name . ".png`r`n"
+          unmatched_thumb_list .= playlist_name . "/" . A_LoopField . "=" . sanitized_name . ".png  (" . ROM_name . ")`r`n"
         }
       }
     }

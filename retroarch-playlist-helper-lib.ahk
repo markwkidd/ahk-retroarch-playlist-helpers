@@ -62,10 +62,10 @@ BuildArcadeDATArray(datfile_path, ByRef shrunk_DAT_array, display_progress_bar:=
       is_BIOS          := True
     }
     if (InStr(modifiers, "isdevice=""yes""")) {
-        is_device        := True
+      is_device        := True
     }
     if (InStr(modifiers, "ismechanical=""yes""")) {
-        is_mechanical    := True
+      is_mechanical    := True
     }
         
     attribute_start_pos := InStr(modifiers, "cloneof")
@@ -80,9 +80,22 @@ BuildArcadeDATArray(datfile_path, ByRef shrunk_DAT_array, display_progress_bar:=
       ROM_of := SubStr(modifiers, attribute_start_pos, (InStr(modifiers, """", false, attribute_start_pos) - attribute_start_pos))
     }
                
-    if (InStr(modifiers, "runnable=""no""")) {
-        runnable        := False
-    }      
+    if (InStr(modifiers, "status=""preliminary""")) {
+      runnable        := False
+    }
+
+    if (InStr(modifiers, "status=""baddump""")) {
+      runnable        := False
+    }
+    
+    if (InStr(modifiers, "status=""nodump""")) {
+      runnable        := False
+    }
+    
+    if (InStr(modifiers, "status=""protection""")) {
+      runnable        := False
+    }
+
     if(InStr(XML_subentries, "disk")) {
       needs_CHD       := True
     }    
@@ -109,7 +122,7 @@ BuildArcadeDATArray(datfile_path, ByRef shrunk_DAT_array, display_progress_bar:=
       title := StrReplace(title, "&#179;", "3") ;### Remove HTML encoded characters in the DAT title --
       title := StrReplace(title, "&apos;", "'") ;### only handles characters actually spotted in the wild
       title := StrReplace(title, "&amp;", "_")
-    } 
+    }
     
     shrunk_DAT_array[romset_name] := {romset_name:romset_name
                                     , title:title
