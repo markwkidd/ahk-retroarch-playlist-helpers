@@ -127,11 +127,7 @@ Main() {
       ROM_entry_categories := Trim(SubStr(ROM_entry_categories, 1, flag_index))
     }
         
-    if(romset_entry.primary_category == "Unplayable") {
-      romset_entry.runnable := False
-    }
-        
-        parsed_ROM_array[ROM_filename_no_ext] := romset_entry       
+    parsed_ROM_array[ROM_filename_no_ext] := romset_entry       
         
     ;### Build a list of all the categories represented in the catver.ini file
     IfNotInString, category_list, % romset_entry.primary_category . "|"
@@ -425,7 +421,7 @@ FilterSelectGUI() {
   Gui, Add, Checkbox, xs8 ys24 w470 vexclude_clones Checked%exclude_clones%, Always exclude entries tagged as clones
   Gui, Add, Checkbox, xs8 y+4 w470 vexclude_mature_titles Checked%exclude_mature_titles%, Always exclude mature entries
   Gui, Add, Checkbox, xs8 y+4 w470 vexclude_CHD_titles Checked%exclude_CHD_titles%, Always exclude entries with CHDs
-  Gui, Add, Checkbox, xs8 y+4 w470 vexclude_non_running_titles Checked%exclude_non_running_titles%, Always exclude non-runnable DAT entries (depending on MAME version this will filter out BIOS, Device, and Mechanical)
+  Gui, Add, Checkbox, xs8 y+4 w470 vexclude_non_running_titles Checked%exclude_non_running_titles%, Always exclude non-runnable DAT entries (depending on MAME version this may filter out BIOS, Device, and Mechanical)
 
 
   ;### Buttons

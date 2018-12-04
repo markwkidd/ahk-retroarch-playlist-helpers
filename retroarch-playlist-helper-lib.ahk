@@ -83,6 +83,10 @@ BuildArcadeDATArray(datfile_path, ByRef shrunk_DAT_array, display_progress_bar:=
     if (InStr(modifiers, "status=""preliminary""")) {
       runnable        := False
     }
+    
+    if (InStr(modifiers, "emulation=""preliminary""")) {
+      runnable        := False
+    }
 
     if (InStr(modifiers, "status=""baddump""")) {
       runnable        := False
@@ -93,6 +97,10 @@ BuildArcadeDATArray(datfile_path, ByRef shrunk_DAT_array, display_progress_bar:=
     }
     
     if (InStr(modifiers, "status=""protection""")) {
+      runnable        := False
+    }
+
+    if (InStr(modifiers, "protection=""preliminary""")) {
       runnable        := False
     }
 
