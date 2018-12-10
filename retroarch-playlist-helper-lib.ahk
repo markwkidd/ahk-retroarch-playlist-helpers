@@ -79,28 +79,28 @@ BuildArcadeDATArray(datfile_path, ByRef shrunk_DAT_array, display_progress_bar:=
       attribute_start_pos += 7
       ROM_of := SubStr(modifiers, attribute_start_pos, (InStr(modifiers, """", false, attribute_start_pos) - attribute_start_pos))
     }
-               
-    if (InStr(modifiers, "status=""preliminary""")) {
+  
+    if (InStr(XML_subentries, "status=""preliminary""")) {
       runnable        := False
     }
     
-    if (InStr(modifiers, "emulation=""preliminary""")) {
+    if (InStr(XML_subentries, "emulation=""preliminary""")) {
       runnable        := False
     }
 
-    if (InStr(modifiers, "status=""baddump""")) {
+    if (InStr(XML_subentries, "status=""baddump""")) {
       runnable        := False
     }
     
-    if (InStr(modifiers, "status=""nodump""")) {
+    if (InStr(XML_subentries, "status=""nodump""")) {
       runnable        := False
     }
     
-    if (InStr(modifiers, "status=""protection""")) {
+    if (InStr(XML_subentries, "status=""protection""")) {
       runnable        := False
     }
 
-    if (InStr(modifiers, "protection=""preliminary""")) {
+    if (InStr(XML_subentries, "protection=""preliminary""")) {
       runnable        := False
     }
 
