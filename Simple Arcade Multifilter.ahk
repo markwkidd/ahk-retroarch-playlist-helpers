@@ -50,7 +50,9 @@ global bundle_bios_files                := True   ;### always include BIOS files
 global bundle_device_files              := True
 global bundle_mechanical_files          := False
 global bundle_mature_files              := False
-global exclude_clones                   := False  ;### always exclude clones **as deignated in the DAT** (uses 'cloneof' tag)
+global exclude_bios_files               := False
+global exclude_device_files             := False
+global exclude_mechanical_files         := False
 global exclude_mature_titles            := False 
 global exclude_CHD_titles               := False
 global exclude_non_running_titles       := False
@@ -184,7 +186,13 @@ Main() {
     ROM_filename_with_ext      := ""        
     SplitPath, current_ROM_path, ROM_filename_with_ext,,,
      
-    if(exclude_clones && romset_details.clone_of) {
+    if(exclude_bios_files && romset_details.is_BIOS) {
+      continue
+    }
+    if(exclude_device_files && romset_details.is_device) {
+      continue
+    }
+    if(exclude_mechanical_files && romset_details.is_mechanical) {
       continue
     }
     if(exclude_mature_titles && romset_details.is_mature){
@@ -197,13 +205,13 @@ Main() {
       continue
     }
 
-    if(bundle_bios_files && romset_details.is_BIOS){ 
-            ROM_matches_inclusion_list := True
-        } else if(bundle_device_files && romset_details.is_device) {
-            ROM_matches_inclusion_list := True        
-        } else if(bundle_mechanical_files && romset_details.is_mechanical) {
-            ROM_matches_inclusion_list := True
-        } else if(bundle_mature_files && romset_details.is_mature) {
+    if(bundle_bios_files && romset_details.is_BIOS) { 
+       ROM_matches_inclusion_list := True
+    } else if(bundle_device_files && romset_details.is_device) {
+       ROM_matches_inclusion_list := True        
+    } else if(bundle_mechanical_files && romset_details.is_mechanical) {
+       ROM_matches_inclusion_list := True
+    } else if(bundle_mature_files && romset_details.is_mature) {
       ROM_matches_inclusion_list := True
     } else {
 
@@ -375,7 +383,7 @@ FilterSelectGUI() {
   Gui, Font, s12 w700, Verdana
   Gui, Add, Groupbox, w490 xm0 ys75 h380 Section,%include_list_label%
     Gui, Font, s12 w400, Verdana
-    Gui, Add, ListBox, Sort 8 vinclude_filter xs9 ys+24 w470 h240, %category_list%
+    Gui, Add, ListBox, Sort Multi vinclude_filter xs9 ys+24 w470 h240, %category_list%
 
     ;### manual include filter
     Gui, Font, s10 w700, Verdana
@@ -388,10 +396,10 @@ FilterSelectGUI() {
   Gui, Font, s12 w700, Verdana
   Gui, Add, Groupbox, xm0 y+14 w490 h120 Section, Other filters
   Gui, Font, s10 w400, Verdana
-  Gui, Add, Checkbox, xs8 ys24 w470 vbundle_bios_files       Checked%bundle_bios_files%,       Copy all BIOS sets listed in the DAT
-    Gui, Add, Checkbox, xs8 y+4  w470 vbundle_device_files     Checked%bundle_device_files%,     Copy all Device sets listed in the DAT
-  Gui, Add, Checkbox, xs8 y+4  w470 vbundle_mechanical_files Checked%bundle_mechanical_files%, Copy all Mechanical sets listed in the DAT
-  Gui, Add, Checkbox, xs8 y+4  w470 vbundle_mature_files     Checked%bundle_mature_files%,     Copy all Mature entries
+  Gui, Add, Checkbox, xs8 ys24 w470 vbundle_bios_files       Checked%bundle_bios_files%,       Copy all BIOS sets
+  Gui, Add, Checkbox, xs8 y+4  w470 vbundle_device_files     Checked%bundle_device_files%,     Copy all Device sets
+  Gui, Add, Checkbox, xs8 y+4  w470 vbundle_mechanical_files Checked%bundle_mechanical_files%, Copy all Mechanical sets
+  Gui, Add, Checkbox, xs8 y+4  w470 vbundle_mature_files     Checked%bundle_mature_files%,     Copy all Mature sets
   
   
   ;### BEGIN RIGHT COLUMN
@@ -416,12 +424,14 @@ FilterSelectGUI() {
     
   ;### other exclude filters
   Gui, Font, s12 w700, Verdana
-  Gui, Add, Groupbox, xs0 y+14 w490 h120 Section, Other filters
+  Gui, Add, Groupbox, xs0 y+14 w490 h162 Section, Other filters
   Gui, Font, s10 w400, Verdana
-  Gui, Add, Checkbox, xs8 ys24 w470 vexclude_clones Checked%exclude_clones%, Always exclude entries tagged as clones
-  Gui, Add, Checkbox, xs8 y+4 w470 vexclude_mature_titles Checked%exclude_mature_titles%, Always exclude mature entries
-  Gui, Add, Checkbox, xs8 y+4 w470 vexclude_CHD_titles Checked%exclude_CHD_titles%, Always exclude entries with CHDs
-  Gui, Add, Checkbox, xs8 y+4 w470 vexclude_non_running_titles Checked%exclude_non_running_titles%, Always exclude non-runnable DAT entries (depending on MAME version this may filter out BIOS, Device, and Mechanical)
+  Gui, Add, Checkbox, xs8 ys24 w470 vexclude_bios_files         Checked%exclude_bios_files%,          Exclude BIOS sets
+  Gui, Add, Checkbox, xs8 y+4  w470 vexclude_device_files       Checked%exclude_device_files%,        Exclude Device sets
+  Gui, Add, Checkbox, xs8 y+4  w470 vexclude_mechanical_files   Checked%exclude_mechanical_files%,    Exclude Mechanical sets
+  Gui, Add, Checkbox, xs8 y+4  w470 vexclude_mature_titles      Checked%exclude_mature_titles%,       Exclude Mature sets
+  Gui, Add, Checkbox, xs8 y+4  w470 vexclude_CHD_titles         Checked%exclude_CHD_titles%,          Exclude sets with CHDs
+  Gui, Add, Checkbox, xs8 y+4  w470 vexclude_non_running_titles Checked%exclude_non_running_titles%,  Exclude non-runnable sets (depending on MAME version this may also filter out BIOS, Device, and/or Mechanical)
 
 
   ;### Buttons

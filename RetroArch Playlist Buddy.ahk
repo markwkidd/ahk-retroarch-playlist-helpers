@@ -337,13 +337,14 @@ ThumbnailProcessor(ByRef ROM_file_array, playlist_name, ByRef unmatched_thumb_li
 ;---------------------------------------------------------------------------------------------------------
 
 MatchDATFilterCriteria(dat_entry) {
-  if(dat_entry.isbios) {
+
+  if(dat_entry.is_BIOS) {
     Return True
   }
-  if(dat_entry.isdevice) {
+  if(dat_entry.is_device) {
     Return True
   }
-  if(dat_entry.ismechanical){
+  if(dat_entry.is_mechanical){
     Return True
   }
   if(!dat_entry.runnable){

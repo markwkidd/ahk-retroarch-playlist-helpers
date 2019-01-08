@@ -8,17 +8,17 @@ SetWorkingDir %A_ScriptDir%    ;### Ensure a consistent starting directory.
 
 #include retroarch-playlist-helper-lib.ahk
 
-global source_DAT         := "MAME 0.37b5.xml"
+global source_DAT         := "mame2003-plus.xml"
 ;### Example: C:\MAME\dats\MAME 078.dat
 ;### local path to a MAME ROM database file
 
-global new_DAT_name       := "MAME 2000 (MAME 0.37b5)"
+global new_DAT_name       := "MAME 2003-Plus Full Non-Merged Working"
 global new_DAT_filename   := new_dat_name . ".dat"
-global new_DAT_version    := "0.37b5"
+global new_DAT_version    := "2018-12-14"
 ;FormatTime, new_DAT_version,, yyyy-MM-dd
 ;### NOTE: THIS SCRIPT WILL DELETE ANY EXISTING FILE WITH THIS NAME
 
-global windowsroms        := "E:\Emulation\MAME0.37b5 Full Non Merged Working"
+global windowsroms        := "E:\Emulation\mame2003-plus working only"
 ;### Example: C:\MAME 0.78 Non-Merged\roms
 ;### DO NOT INCLUDE A CLOSING SLASH AT THE END OF THE PATH
 ;### This path is a MAME ROMs folder accessible to THIS WINDOWS HOST. These 
