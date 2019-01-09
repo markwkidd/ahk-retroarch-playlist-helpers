@@ -381,7 +381,7 @@ FilterSelectGUI() {
   
   ;### include filter
   Gui, Font, s12 w700, Verdana
-  Gui, Add, Groupbox, w490 xm0 ys75 h380 Section,%include_list_label%
+  Gui, Add, Groupbox, w490 xm0 ys75 h382 Section,%include_list_label%
     Gui, Font, s12 w400, Verdana
     Gui, Add, ListBox, Sort Multi vinclude_filter xs9 ys+24 w470 h240, %category_list%
 
@@ -394,7 +394,7 @@ FilterSelectGUI() {
     
   ;### other include filters
   Gui, Font, s12 w700, Verdana
-  Gui, Add, Groupbox, xm0 y+14 w490 h120 Section, Other filters
+  Gui, Add, Groupbox, xm0 y+14 w490 h110 Section, Other include filters
   Gui, Font, s10 w400, Verdana
   Gui, Add, Checkbox, xs8 ys24 w470 vbundle_bios_files       Checked%bundle_bios_files%,       Copy all BIOS sets
   Gui, Add, Checkbox, xs8 y+4  w470 vbundle_device_files     Checked%bundle_device_files%,     Copy all Device sets
@@ -411,7 +411,7 @@ FilterSelectGUI() {
 
   ;### exclude filter
   Gui, Font, s12 w700, Verdana
-  Gui, Add, Groupbox, w490 xs0 ys75 h280 Section,%exclude_list_label%
+  Gui, Add, Groupbox, w490 xs0 ys75 h382 Section,%exclude_list_label%
     Gui, Font, s12 w400, Verdana
     Gui, Add, ListBox, Sort 8 vexclude_filter xs9 ys+24 w470 h240, %category_list%
 
@@ -424,7 +424,7 @@ FilterSelectGUI() {
     
   ;### other exclude filters
   Gui, Font, s12 w700, Verdana
-  Gui, Add, Groupbox, xs0 y+14 w490 h162 Section, Other filters
+  Gui, Add, Groupbox, xs0 y+14 w490 h162 Section, Other exclude filters
   Gui, Font, s10 w400, Verdana
   Gui, Add, Checkbox, xs8 ys24 w470 vexclude_bios_files         Checked%exclude_bios_files%,          Exclude BIOS sets
   Gui, Add, Checkbox, xs8 y+4  w470 vexclude_device_files       Checked%exclude_device_files%,        Exclude Device sets

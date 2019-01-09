@@ -88,14 +88,6 @@ BuildArcadeDATArray(datfile_path, ByRef shrunk_DAT_array, display_progress_bar:=
       runnable        := False
     }
 
-    if (InStr(XML_subentries, "status=""baddump""")) {
-      runnable        := False
-    }
-
-    if (InStr(XML_subentries, "status=""nodump""")) {
-      runnable        := False
-    }
-
     if (InStr(XML_subentries, "status=""protection""")) {
       runnable        := False
     }
