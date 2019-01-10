@@ -50,9 +50,11 @@ BuildArcadeDATArray(datfile_path, ByRef shrunk_DAT_array, display_progress_bar:=
     ROM_of          := False
     runnable        := True
     needs_CHD       := False
+    CHD_only        := False
     title           := ""
     year            := ""
     manufacturer    := ""
+    player_count    := 0
 
     if(romset_name == "") {
       MsgBox Unexpected error processing DAT file.`n`nROM set name:%romset_name% Title:%dat_title%
@@ -99,6 +101,9 @@ BuildArcadeDATArray(datfile_path, ByRef shrunk_DAT_array, display_progress_bar:=
     if(InStr(XML_subentries, "disk")) {
       needs_CHD       := True
     }
+    
+    ;### TODO: detect CHD-only sets
+    ;### CHD_only     := True
 
     attribute_start_pos := InStr(XML_subentries, "<description>")
     if(attribute_start_pos) {
@@ -117,6 +122,12 @@ BuildArcadeDATArray(datfile_path, ByRef shrunk_DAT_array, display_progress_bar:=
       attribute_start_pos += 14
       manufacturer    := SubStr(XML_subentries, attribute_start_pos, (InStr(XML_subentries, "</manufacturer>") - attribute_start_pos))
     }
+    
+    attribute_start_pos := InStr(XML_subentries, "players=""")
+    if(attribute_start_pos) {
+      attribute_start_pos += 9
+      player_count    := SubStr(XML_subentries, attribute_start_pos, 1)
+    }
 
     if(title != "") {
       title := StrReplace(title, "&#179;", "3") ;### Remove HTML encoded characters in the DAT title --
@@ -124,9 +135,11 @@ BuildArcadeDATArray(datfile_path, ByRef shrunk_DAT_array, display_progress_bar:=
       title := StrReplace(title, "&amp;", "_")
     }
 
+
     shrunk_DAT_array[romset_name] := {romset_name:romset_name
-                                    , title:title
+                    , title:title
                     , needs_CHD:needs_CHD
+                    , CHD_only:CHD_only
                     , is_BIOS:is_BIOS
                     , is_device:is_device
                     , is_mechanical:is_mechanical
@@ -134,7 +147,8 @@ BuildArcadeDATArray(datfile_path, ByRef shrunk_DAT_array, display_progress_bar:=
                     , ROM_of:ROM_of
                     , runnable:runnable
                     , year:year
-                    , manufacturer:manufacturer}
+                    , manufacturer:manufacturer
+                    , player_count:player_count}
   }
 
   if(display_progress_bar) {
@@ -188,16 +202,16 @@ PlaylistGenerator(ByRef ROM_file_array, playlist_filename, playlist_name, playli
 ;---------------------------------------------------------------------------------------------------------
 
 SanitizeFilename(input_string) {            ;### fix chars for multi-platform use per No-Intro standard
-  input_string := StrReplace(input_string, "&", "_")
-  input_string := StrReplace(input_string, "\", "_")
-  input_string := StrReplace(input_string, "/", "_")
-  input_string := StrReplace(input_string, "?", "_")
-  input_string := StrReplace(input_string, ":", "_")
+  input_string := StrReplace(input_string, "&",  "_")
+  input_string := StrReplace(input_string, "\",  "_")
+  input_string := StrReplace(input_string, "/",  "_")
+  input_string := StrReplace(input_string, "?",  "_")
+  input_string := StrReplace(input_string, ":",  "_")
   input_string := StrReplace(input_string, "``", "_")
-  input_string := StrReplace(input_string, "<", "_")
-  input_string := StrReplace(input_string, ">", "_")
-  input_string := StrReplace(input_string, "*", "_")
-  input_string := StrReplace(input_string, "|", "_")
+  input_string := StrReplace(input_string, "<",  "_")
+  input_string := StrReplace(input_string, ">",  "_")
+  input_string := StrReplace(input_string, "*",  "_")
+  input_string := StrReplace(input_string, "|",  "_")
   return input_string
 }
 

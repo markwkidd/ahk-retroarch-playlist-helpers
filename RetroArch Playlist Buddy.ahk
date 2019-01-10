@@ -461,7 +461,7 @@ ROMSubfolderSelectGUI() {
   
   Gui, Font, s12 w700, Verdana
   Gui, Add, Groupbox, w580 Section xm0 ym0 h325,%rom_subfolder_list_label%
-  Gui, Add, ListBox, 8 vselected_rom_subfolder_list xs9 ys25 w550 h300, %full_rom_subfolder_list%
+  Gui, Add, ListBox, Multi vselected_rom_subfolder_list xs9 ys25 w550 h300, %full_rom_subfolder_list%
 
   if(process_local_thumbs or process_remote_thumbs) {
     logging_options_y_pos := "ys200" ;### the thumbnail log GUI will be positioned with respect to the thumb scraping options 
