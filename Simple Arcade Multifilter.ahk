@@ -122,7 +122,6 @@ Main() {
       romset_entry := DAT_array[ROM_filename_no_ext].clone()
       romset_entry.CHD_only := True
       parsed_ROM_array[ROM_filename_no_ext] := romset_entry
-      MsgBox, CHD-only set
     }
   }
   
