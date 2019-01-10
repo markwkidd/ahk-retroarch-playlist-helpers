@@ -88,12 +88,13 @@ Main() {
     Goto, GatherConfigData
   }
 
-  ROMFileList    := "" ;### (re)initialize - user may have returned to this point in the process
-  category_list  := "" ;### (re)initialize
-  number_of_roms := 0  ;### (re)initialize
+  ROMFileList      := "" ;### (re)initialize - user may have returned to this point in the process
+  category_list    := "" ;### (re)initialize
+  number_of_roms   := 0  ;### (re)initialize
+  romset_extension := ""
 
-  Loop, Files, %rom_path%\*.*, DF
-  { ;### just count the files and folders for progress bar use
+  Loop, Files, %rom_path%\*.*, F
+  { ;### count the files progress bar use
     number_of_roms := A_index
   }
 
@@ -110,7 +111,7 @@ Main() {
 
   Loop, Files, %rom_path%\*.*, F ;### only loop through files
   {
-    SplitPath, A_LoopFileName,,,,ROM_filename_no_ext
+    SplitPath, A_LoopFileName,,, romset_extension, ROM_filename_no_ext
     romset_entry := DAT_array[ROM_filename_no_ext].clone()
     parsed_ROM_array[ROM_filename_no_ext] := romset_entry
   }
@@ -127,7 +128,7 @@ Main() {
   
   For ROM_filename_no_ext, romset_entry in parsed_ROM_array
   {
-    romset_entry.path             :=(ROM_path . "\" . A_LoopFileName)
+    romset_entry.path             :=(ROM_path . "\" . "." . romset_extension)
 
     IniRead, ROM_entry_categories, %catver_path%, Category, %ROM_filename_no_ext%, **Uncategorized**    
     romset_entry.is_mature        := False
@@ -274,6 +275,7 @@ Main() {
     {
       continue
     }
+
     percent_parsed := Round(100 * (current_ROM_index / number_of_roms))
     Progress, %percent_parsed%, Filtering and copying ROMs and CHDs., %current_romset_name%, %app_title%
 
