@@ -18,8 +18,8 @@ global app_title                         := "Simple Arcade Multifilter"
 ;### Leave blank to prompt for all values in GUI
 ;### Enter values in the script to serve as defaults in GUI
 
-global rom_path                         := ""
-global rom_path_label                   := "Local Arcade ROMset path"
+global romset_path                         := ""
+global romset_path_label                   := "Local Arcade ROMset path"
 
 global MAME_version_reminder            := "The XML DAT and catver.ini should have a version number that matches the ROMset version."
 
@@ -69,12 +69,12 @@ Main() {
   PrimarySettingsGUI()        ;### Prompt the user to enter the configuration
   WinWaitClose
 
-  StripFinalSlash(rom_path)   ;## Remove any trailing forward or back slashes from user-provided paths
+  StripFinalSlash(romset_path)   ;## Remove any trailing forward or back slashes from user-provided paths
 
   ;### Exit if these files/folders don't exist or are set incorrectly
-  if !FileExist(rom_path)
+  if !FileExist(romset_path)
   {
-    MsgBox,,Path Error!, ROM directory does not exist:`n%rom_path%
+    MsgBox,,Path Error!, ROM directory does not exist:`n%romset_path%
     Goto, GatherConfigData
   }
   else if (!FileExist(catver_path))
@@ -88,12 +88,11 @@ Main() {
     Goto, GatherConfigData
   }
 
-  ROMFileList      := "" ;### (re)initialize - user may have returned to this point in the process
   category_list    := "" ;### (re)initialize
   number_of_roms   := 0  ;### (re)initialize
   romset_extension := ""
 
-  Loop, Files, %rom_path%\*.*, F
+  Loop, Files, %romset_path%\*.*, F
   { ;### count the files progress bar use
     number_of_roms := A_index
   }
@@ -109,28 +108,27 @@ Main() {
 
   parsed_ROM_array := Object()
 
-  Loop, Files, %rom_path%\*.*, F ;### only loop through files
+  Loop, Files, %romset_path%\*.*, F ;### only loop through files
   {
-    SplitPath, A_LoopFileName,,, romset_extension, ROM_filename_no_ext
-    romset_entry := DAT_array[ROM_filename_no_ext].clone()
-    parsed_ROM_array[ROM_filename_no_ext] := romset_entry
+    SplitPath, A_LoopFileName, romset_with_ext,, romset_extension, romset_no_ext
+    romset_entry := DAT_array[romset_no_ext].clone()
+    romset_entry.path               := romset_path . "\" . romset_with_ext
+    parsed_ROM_array[romset_no_ext] := romset_entry
   }
-  Loop, Files, %rom_path%\*.*, D ;### only loop through subdirectories, looking for CHD only sets
+  Loop, Files, %romset_path%\*.*, D ;### only loop through subdirectories, looking for CHD only sets
   {
-    SplitPath, A_LoopFileName,,,,ROM_filename_no_ext
-    if(!parsed_ROM_array.HasKey(ROM_filename_no_ext)) ;### we have not already found it by looking in the main folder
+    SplitPath, A_LoopFileName,,,,romset_no_ext
+    if(!parsed_ROM_array.HasKey(romset_no_ext)) ;### we have not already found it by looking in the main folder
     {
-      romset_entry := DAT_array[ROM_filename_no_ext].clone()
+      romset_entry := DAT_array[romset_no_ext].clone()
       romset_entry.CHD_only := True
-      parsed_ROM_array[ROM_filename_no_ext] := romset_entry
+      parsed_ROM_array[romset_no_ext] := romset_entry
     }
   }
   
-  For ROM_filename_no_ext, romset_entry in parsed_ROM_array
+  For romset_no_ext, romset_entry in parsed_ROM_array
   {
-    romset_entry.path             :=(ROM_path . "\" . "." . romset_extension)
-
-    IniRead, ROM_entry_categories, %catver_path%, Category, %ROM_filename_no_ext%, **Uncategorized**    
+    IniRead, ROM_entry_categories, %catver_path%, Category, %romset_no_ext%, **Uncategorized**    
     romset_entry.is_mature        := False
     romset_entry.primary_category := ""
     romset_entry.full_category    := ROM_entry_categories
@@ -206,10 +204,8 @@ Main() {
   {
     current_ROM_index          += 1
     current_romset_name        := romset_details.romset_name
-    current_ROM_path           := romset_details.path
+    current_romset_path        := romset_details.path
     ROM_matches_inclusion_list := False
-    ROM_filename_with_ext      := ""
-    SplitPath, current_ROM_path, ROM_filename_with_ext,,,
 
     if(exclude_bios_files && romset_details.is_BIOS)
     {
@@ -279,17 +275,17 @@ Main() {
     percent_parsed := Round(100 * (current_ROM_index / number_of_roms))
     Progress, %percent_parsed%, Filtering and copying ROMs and CHDs., %current_romset_name%, %app_title%
 
-    ;MsgBox current_rom path:%current_ROM_path%`n`noutput: %output_path%
+    ;MsgBox current_rom path:%current_romset_path%`n`noutput: %output_path%
 
     if(!romset_details.CHD_only)
     {
-      FileCopy, %current_ROM_path%, %output_path%, 0 ;### do not overwrite existing files
+      FileCopy, %current_romset_path%, %output_path%, 0 ;### do not overwrite existing files
     }
 
     if(romset_details.needs_CHD)
     {
       ;### check for CHD folders
-      CHD_source_path      := ROM_path . "\" . current_romset_name
+      CHD_source_path      := romset_path . "\" . current_romset_name
       CHD_destination_path := output_path . "\" . current_romset_name
 
       if(FileExist(CHD_source_path))
@@ -325,9 +321,9 @@ PrimarySettingsGUI()
 
     ;### ROM storage location
     Gui, Font, s10 w700, Verdana
-    Gui, Add, Text, xs8 ys22 w535, %rom_path_label%
+    Gui, Add, Text, xs8 ys22 w535, %romset_path_label%
     Gui, Font, s10 w400, Verdana
-    Gui, Add, Edit, xs8 y+2 w360 h24 vrom_path, %rom_path%
+    Gui, Add, Edit, xs8 y+2 w360 h24 vromset_path, %romset_path%
         Gui, Add, Button, x+10 yp-1 w150 h26 gBrowseROMs, Browse for folder...
 
         Gui, Font, s10 w700, Verdana
@@ -369,12 +365,12 @@ PrimarySettingsGUI()
 
     BrowseROMs:
     {
-        FileSelectFolder, rom_path, , 3
-        if (rom_path == "")
+        FileSelectFolder, romset_path, , 3
+        if (romset_path == "")
         {
             Return      ;### User selected 'cancel'
         }
-        GuiControl,, rom_path, %rom_path%
+        GuiControl,, romset_path, %romset_path%
         Return
     }
     BrowseDAT:
